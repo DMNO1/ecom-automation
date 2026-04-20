@@ -1,0 +1,46 @@
+# RAG知识库服务Docker Compose配置
+version: '3.8'
+
+services:
+  rag-service:
+    build: .
+    container_name: rag-service
+    ports:
+      - "8001:8001"
+    environment:
+      - RAG_SERVICE_HOST=0.0.0.0
+      - RAG_SERVICE_PORT=8001
+      - RAG_SERVICE_RELOAD=false
+      - MODEL_NAME=shibing624/text2vec-base-chinese
+    volumes:
+      - ./data:/app/data
+      - ./indexes:/app/indexes
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - rag-network
+
+  # 可选：添加Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge
+
+volumes:
+  redis-data:

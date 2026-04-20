@@ -1,0 +1,138 @@
+# 竞品爬虫服务配置
+# 复制此文件为 config.yaml 并修改配置
+
+# 服务配置
+server:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  workers: 4
+
+# MongoDB配置
+mongodb:
+  url: "mongodb://localhost:27017"
+  database: "competitor_crawler"
+  collection: "snapshots"
+
+# 爬虫配置
+crawler:
+  # 默认超时时间（秒）
+  timeout: 30
+  # 重试次数
+  max_retries: 3
+  # 请求间隔（秒）
+  request_delay:
+    min: 1
+    max: 3
+  # 并发数
+  concurrency: 5
+  # 用户代理轮换
+  rotate_user_agent: true
+
+# 调度器配置
+scheduler:
+  # 默认检查间隔（分钟）
+  default_intervals:
+    price_check: 15
+    title_check: 30
+    full_check: 60
+    promotion_monitor: 120
+  # 最大任务数
+  max_tasks: 100
+  # 任务超时（秒）
+  task_timeout: 300
+
+# 存储配置
+storage:
+  # 数据目录
+  data_dir: "./data"
+  # 日志目录
+  log_dir: "./logs"
+  # 保留天数
+  retention_days: 90
+  # 图片存储
+  images:
+    enabled: true
+    max_size_mb: 10
+
+# 通知配置
+notifications:
+  # Webhook
+  webhook:
+    enabled: false
+    url: ""
+  # 邮件
+  email:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    from_email: ""
+    to_emails: []
+  # 钉钉
+  dingtalk:
+    enabled: false
+    webhook_url: ""
+    secret: ""
+  # 企业微信
+  wechat_work:
+    enabled: false
+    webhook_url: ""
+
+# 平台配置
+platforms:
+  douyin:
+    enabled: true
+    base_url: "https://www.douyin.com"
+    api_endpoints: {}
+  kuaishou:
+    enabled: true
+    base_url: "https://www.kuaishou.com"
+    api_endpoints: {}
+  pdd:
+    enabled: true
+    base_url: "https://mobile.yangkeduo.com"
+    api_endpoints: {}
+  xianyu:
+    enabled: true
+    base_url: "https://www.goofish.com"
+    api_endpoints: {}
+
+# 代理配置
+proxy:
+  enabled: false
+  type: "http"  # http, socks5
+  url: ""
+  username: ""
+  password: ""
+  # 代理池
+  pool:
+    enabled: false
+    urls: []
+
+# 反爬虫配置
+anti_detection:
+  # 随机延迟
+  random_delay: true
+  # 鼠标移动模拟
+  mouse_movement: true
+  # 滚动模拟
+  scroll_simulation: true
+  # Cookie管理
+  cookie_management: true
+  # 指纹伪装
+  fingerprint_spoofing: true
+
+# 数据分析配置
+analysis:
+  # 价格异常检测阈值（标准差倍数）
+  price_anomaly_threshold: 2.0
+  # 标题关键词提取数量
+  title_keyword_count: 10
+  # 评论关键词提取数量
+  comment_keyword_count: 20
+  # 报告生成
+  report:
+    enabled: true
+    schedule: "0 0 * * *"  # 每天凌晨生成报告

@@ -1,0 +1,29 @@
+# Hermes总控服务依赖
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+aiohttp==3.9.1
+python-dotenv==1.0.0
+python-multipart==0.0.6
+# 数据库相关
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.0
+# Redis缓存
+redis==5.0.1
+# 任务调度
+celery==5.3.4
+# 日志
+loguru==0.7.2
+# 配置管理
+pyyaml==6.0.1
+# 工具库
+python-dateutil==2.8.2
+httpx==0.25.2
+# 测试
+pytest==7.4.3
+pytest-asyncio==0.23.2
+# 开发工具
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  hermes-control:
+    build: .
+    container_name: hermes-control
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=ecommerce
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - N8N_BASE_URL=http://n8n:5678
+      - INTERNAL_API_URL=http://host.docker.internal:8000
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+      - ./skills:/app/skills
+    networks:
+      - hermes-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: hermes-postgres
+    environment:
+      - POSTGRES_DB=ecommerce
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hermes-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: hermes-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - hermes-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  hermes-network:
+    driver: bridge

@@ -1,0 +1,21 @@
+{
+  "report_date": "2024-01-01",
+  "summary": {
+    "total_orders": 1250,
+    "total_revenue": 125000.5,
+    "conversion_rate": 3.2,
+    "customer_satisfaction": 4.5
+  },
+  "highlights": [
+    "销售额同比增长15%",
+    "新客户占比达到25%"
+  ],
+  "issues": [
+    "退货率略有上升",
+    "部分商品库存不足"
+  ],
+  "recommendations": [
+    "优化库存管理",
+    "加强售后服务"
+  ]
+}
