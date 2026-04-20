@@ -1,0 +1,32 @@
+# 核心依赖
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# 浏览器自动化
+playwright>=1.40.0
+
+# 数据库
+aiosqlite>=0.19.0
+
+# 异步支持
+asyncio>=3.4.3
+aiohttp>=3.9.0
+
+# 工具库
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+
+# 系统监控
+psutil>=5.9.0
+
+# 日志
+loguru>=0.7.0
+
+# AI相关（可选）
+openai>=1.0.0
+
+# 其他工具
+requests>=2.31.0
+pyyaml>=6.0.1

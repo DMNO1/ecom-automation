@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  pdd-cs-adapter:
+    build: .
+    container_name: pdd-cs-adapter
+    ports:
+      - "8000:8000"
+    environment:
+      - PDD_CLIENT_ID=${PDD_CLIENT_ID}
+      - PDD_CLIENT_SECRET=${PDD_CLIENT_SECRET}
+      - PDD_ACCESS_TOKEN=${PDD_ACCESS_TOKEN}
+      - PDD_USERNAME=${PDD_USERNAME}
+      - PDD_PASSWORD=${PDD_PASSWORD}
+      - AUTO_REPLY_ENABLED=${AUTO_REPLY_ENABLED:-true}
+      - POLL_INTERVAL=${POLL_INTERVAL:-30}
+      - BROWSER_HEADLESS=${BROWSER_HEADLESS:-true}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/pdd_cs.db}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./knowledge_base.json:/app/knowledge_base.json
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: pdd-cs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis_data:
