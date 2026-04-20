@@ -1,0 +1,194 @@
+version: '3.8'
+
+services:
+  # 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecom-postgres
+    environment:
+      POSTGRES_DB: ecom_automation
+      POSTGRES_USER: ecom
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ecom2024}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ecom-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ecom-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecom-network
+
+  # API网关
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: ecom-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # 抖店适配器
+  douyin-adapter:
+    build:
+      context: ./services/douyin-adapter
+      dockerfile: Dockerfile
+    container_name: ecom-douyin-adapter
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/1
+      - DOUYIN_APP_KEY=${DOUYIN_APP_KEY}
+      - DOUYIN_APP_SECRET=${DOUYIN_APP_SECRET}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # 快手适配器
+  kuaishou-adapter:
+    build:
+      context: ./services/kuaishou-adapter
+      dockerfile: Dockerfile
+    container_name: ecom-kuaishou-adapter
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/2
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # 拼多多客服
+  pdd-cs-adapter:
+    build:
+      context: ./services/pdd-cs-adapter
+      dockerfile: Dockerfile
+    container_name: ecom-pdd-cs-adapter
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/3
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # 闲鱼适配器
+  xianyu-adapter:
+    build:
+      context: ./services/xianyu-adapter
+      dockerfile: Dockerfile
+    container_name: ecom-xianyu-adapter
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/4
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # 竞品爬虫
+  competitor-crawler:
+    build:
+      context: ./services/competitor-crawler
+      dockerfile: Dockerfile
+    container_name: ecom-competitor-crawler
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/5
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # OMS服务
+  oms-service:
+    build:
+      context: ./services/oms-service
+      dockerfile: Dockerfile
+    container_name: ecom-oms-service
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=postgresql://ecom:${DB_PASSWORD:-ecom2024}@postgres:5432/ecom_automation
+      - REDIS_URL=redis://redis:6379/6
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecom-network
+
+  # n8n工作流
+  n8n:
+    image: n8nio/n8n
+    container_name: ecom-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-n8n2024}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_DATABASE=ecom_automation
+      - DB_POSTGRESDB_USER=ecom
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-ecom2024}
+    depends_on:
+      - postgres
+    networks:
+      - ecom-network
+
+  # Metabase BI
+  metabase:
+    image: metabase/metabase
+    container_name: ecom-metabase
+    ports:
+      - "3000:3000"
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=ecom_automation
+      - MB_DB_PORT=5432
+      - MB_DB_USER=ecom
+      - MB_DB_PASS=${DB_PASSWORD:-ecom2024}
+      - MB_DB_HOST=postgres
+    depends_on:
+      - postgres
+    networks:
+      - ecom-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ecom-network:
+    driver: bridge

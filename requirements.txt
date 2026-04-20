@@ -1,0 +1,44 @@
+# 核心框架
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# 数据库
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+alembic==1.13.0
+psycopg2-binary==2.9.9
+
+# Redis
+redis==5.0.1
+celery==5.3.6
+
+# 浏览器自动化
+playwright==1.40.0
+
+# HTTP客户端
+httpx==0.25.2
+aiohttp==3.9.1
+
+# 数据处理
+pandas==2.1.4
+numpy==1.26.2
+
+# 工具
+python-dotenv==1.0.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# 日志
+loguru==0.7.2
+
+# 定时任务
+apscheduler==3.10.4
+
+# 向量数据库
+pgvector==0.2.4
+
+# AI相关
+openai==1.6.1
+tiktoken==0.5.2
