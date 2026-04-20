@@ -7,11 +7,11 @@ from pydantic import BaseModel
 from datetime import datetime
 
 try:
-    from ..xianyu_client import
+    from ..xianyu_client import client_manager, XianyuProduct
 except ImportError:
     from xianyu_client import client_manager, XianyuProduct
 try:
-    from ..product_manager import
+    from ..product_manager import product_manager_registry, ProductTemplate
 except ImportError:
     from product_manager import product_manager_registry, ProductTemplate
 

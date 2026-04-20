@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-04-20T18:00:56.907414",
+  "tests": {
+    "code_quality": {
+      "status": "PASS",
+      "message": "检查2392个文件，全部通过",
+      "details": []
+    },
+    "imports": {
+      "status": "PASS",
+      "message": "核心依赖全部可用",
+      "details": []
+    },
+    "api_structure": {
+      "status": "PASS",
+      "message": "所有服务路由结构完整",
+      "details": []
+    },
+    "database_schema": {
+      "status": "PASS",
+      "message": "7张核心表全部定义",
+      "details": []
+    },
+    "docker_config": {
+      "status": "PASS",
+      "message": "Docker配置完整",
+      "details": []
+    },
+    "documentation": {
+      "status": "WARNING",
+      "message": "1个文档缺失",
+      "details": [
+        "api-gateway: 缺少README.md"
+      ]
+    },
+    "security": {
+      "status": "WARNING",
+      "message": "7个安全问题",
+      "details": [
+        "services/pdd-cs-adapter/venv/lib/python3.11/site-packages/sqlalchemy/__init__.py: 可能存在硬编码token",
+        "services/pdd-cs-adapter/venv/lib/python3.11/site-packages/sqlalchemy/connectors/pyodbc.py: 可能存在硬编码token",
+        "services/pdd-cs-adapter/venv/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/base.py: 可能存在硬编码token",
+        "services/pdd-cs-adapter/venv/lib/python3.11/site-packages/sqlalchemy/dialects/sqlite/base.py: 可能存在硬编码token",
+        "services/pdd-cs-adapter/venv/lib/python3.11/site-packages/sqlalchemy/orm/path_registry.py: 可能存在硬编码token"
+      ]
+    }
+  },
+  "summary": {
+    "total": 7,
+    "passed": 5,
+    "failed": 0,
+    "warnings": 2
+  }
+}
