@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconNotification,
   IconPoweroff,
+  IconStorage,
 } from '@arco-design/web-react/icon';
 import { useNavigate, useLocation, useRoutes } from 'react-router-dom';
 import logoSvg from './assets/logo.svg';
@@ -19,6 +20,7 @@ const { Sider, Header, Content } = Layout;
 const menuItems = [
   { key: '/', icon: <IconDashboard />, title: '仪表盘' },
   { key: '/orders', icon: <IconList />, title: '订单管理' },
+  { key: '/inventory', icon: <IconStorage />, title: '库存管理' },
   { key: '/customer-service', icon: <IconCustomerService />, title: '客服中心' },
   { key: '/products', icon: <IconApps />, title: '商品管理' },
   { key: '/competitors', icon: <IconSafe />, title: '竞品分析' },

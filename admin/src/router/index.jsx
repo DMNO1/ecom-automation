@@ -6,10 +6,12 @@ import CustomerService from '../pages/CustomerService';
 import Products from '../pages/Products';
 import Competitors from '../pages/Competitors';
 import Settings from '../pages/Settings';
+import Inventory from '../pages/Inventory';
 
 const routes = [
   { path: '/', element: <Dashboard /> },
   { path: '/orders', element: <Orders /> },
+  { path: '/inventory', element: <Inventory /> },
   { path: '/customer-service', element: <CustomerService /> },
   { path: '/products', element: <Products /> },
   { path: '/competitors', element: <Competitors /> },
