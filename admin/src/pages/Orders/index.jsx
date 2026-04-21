@@ -1,385 +1,227 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Grid,
-  Table,
-  Tag,
-  Typography,
-  Space,
-  Button,
-  Input,
-  Select,
-  DatePicker,
-  Modal,
-  Message,
-  Drawer,
-  Descriptions,
-  Tabs,
-  Badge,
-  Dropdown,
-  Menu,
-} from '@arco-design/web-react';
-import {
-  IconSearch,
-  IconRefresh,
-  IconExport,
-  IconEye,
-  IconEdit,
-  IconDelete,
-  IconMoreVertical,
-  IconShake,
-  IconCheckCircle,
-  IconClockCircle,
-  IconCloseCircle,
-  IconExclamationCircle,
-  IconSend,
-  IconStorage,
-} from '@arco-design/web-react/icon';
+/**
+ * 订单管理
+ * 支持筛选、搜索、分页、状态管理
+ */
+import React, { useState, useMemo } from 'react';
+import { generateOrders, PLATFORMS, ORDER_STATUS } from '../../utils/mock';
 
-const { Row, Col } = Grid;
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
-const { TabPane } = Tabs;
-
-// Order status configuration
-const orderStatusMap = {
-  pending: { label: '待付款', color: 'orange', icon: <IconClockCircle /> },
-  paid: { label: '已付款', color: 'arcoblue', icon: <IconCheckCircle /> },
-  shipped: { label: '已发货', color: 'cyan', icon: <IconSend /> },
-  delivered: { label: '已签收', color: 'green', icon: <IconCheckCircle /> },
-  cancelled: { label: '已取消', color: 'gray', icon: <IconCloseCircle /> },
-  refunding: { label: '退款中', color: 'orangered', icon: <IconExclamationCircle /> },
-  refunded: { label: '已退款', color: 'red', icon: <IconCloseCircle /> },
-};
-
-// Mock order data
-const generateMockOrders = () => {
-  const statuses = Object.keys(orderStatusMap);
-  const platforms = ['淘宝', '京东', '拼多多', '抖音', '小红书'];
-  const products = ['无线蓝牙耳机', '智能手表', '手机壳', '充电器', '数据线', '平板支架', '鼠标垫'];
-  const customers = ['张三', '李四', '王五', '赵六', '陈七', '刘八'];
-
-  return Array.from({ length: 50 }, (_, i) => ({
-    id: `ORD${String(20240001 + i).padStart(8, '0')}`,
-    platform: platforms[Math.floor(Math.random() * platforms.length)],
-    customer: customers[Math.floor(Math.random() * customers.length)],
-    product: products[Math.floor(Math.random() * products.length)],
-    quantity: Math.floor(Math.random() * 5) + 1,
-    amount: +(Math.random() * 500 + 20).toFixed(2),
-    status: statuses[Math.floor(Math.random() * statuses.length)],
-    createTime: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 3600 * 1000)).toISOString().slice(0, 19).replace('T', ' '),
-    payTime: Math.random() > 0.3 ? new Date(Date.now() - Math.floor(Math.random() * 6 * 24 * 3600 * 1000)).toISOString().slice(0, 19).replace('T', ' ') : '-',
-    address: `浙江省杭州市西湖区${Math.floor(Math.random() * 100) + 1}号`,
-    phone: `1${3 + Math.floor(Math.random() * 7)}${String(Math.random()).slice(2, 11)}`,
-    trackingNo: Math.random() > 0.4 ? `SF${String(Math.random()).slice(2, 15)}` : '-',
-    remark: Math.random() > 0.7 ? '请尽快发货' : '',
-  }));
-};
+const PAGE_SIZE = 10;
 
 export default function Orders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [platformFilter, setPlatformFilter] = useState('all');
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const [detailVisible, setDetailVisible] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState(null);
+  const [orders] = useState(() => generateOrders(80));
+  const [platform, setPlatform] = useState('all');
+  const [status, setStatus] = useState('all');
+  const [keyword, setKeyword] = useState('');
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState(new Set());
+  const [detailOrder, setDetailOrder] = useState(null);
 
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      const data = generateMockOrders();
-      setOrders(data);
-      setPagination(prev => ({ ...prev, total: data.length }));
-      setLoading(false);
-    }, 500);
-  }, []);
-
-  // Filter orders
-  const filteredOrders = orders.filter(order => {
-    const matchSearch = !searchText ||
-      order.id.includes(searchText) ||
-      order.customer.includes(searchText) ||
-      order.product.includes(searchText) ||
-      order.trackingNo.includes(searchText);
-    const matchStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchPlatform = platformFilter === 'all' || order.platform === platformFilter;
-    return matchSearch && matchStatus && matchPlatform;
-  });
-
-  // Status summary counts
-  const statusCounts = Object.keys(orderStatusMap).reduce((acc, key) => {
-    acc[key] = orders.filter(o => o.status === key).length;
-    return acc;
-  }, {});
-
-  const handleViewDetail = (record) => {
-    setCurrentOrder(record);
-    setDetailVisible(true);
-  };
-
-  const handleBatchShip = () => {
-    if (selectedRowKeys.length === 0) {
-      Message.warning('请选择要发货的订单');
-      return;
+  // 筛选逻辑
+  const filtered = useMemo(() => {
+    let list = orders;
+    if (platform !== 'all') list = list.filter(o => o.platform === platform);
+    if (status !== 'all') list = list.filter(o => o.status === status);
+    if (keyword) {
+      const kw = keyword.toLowerCase();
+      list = list.filter(o =>
+        o.id.toLowerCase().includes(kw) ||
+        o.orderNo.includes(kw) ||
+        o.customer.includes(kw) ||
+        o.phone.includes(kw)
+      );
     }
-    Message.success(`已批量发货 ${selectedRowKeys.length} 个订单`);
-    setSelectedRowKeys([]);
+    return list;
+  }, [orders, platform, status, keyword]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const toggleSelect = (id) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelected(next);
   };
 
-  const handleBatchExport = () => {
-    Message.info('正在导出订单数据...');
-    setTimeout(() => Message.success('导出成功'), 1000);
+  const toggleAll = () => {
+    if (selected.size === pageData.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(pageData.map(o => o.id)));
+    }
   };
 
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      const data = generateMockOrders();
-      setOrders(data);
-      setPagination(prev => ({ ...prev, total: data.length }));
-      setLoading(false);
-      Message.success('数据已刷新');
-    }, 500);
-  };
-
-  const columns = [
-    {
-      title: '订单编号',
-      dataIndex: 'id',
-      width: 160,
-      sorter: true,
-      render: (value) => <Text copyable style={{ color: '#165dff' }}>{value}</Text>,
-    },
-    {
-      title: '平台',
-      dataIndex: 'platform',
-      width: 80,
-      render: (value) => {
-        const colors = { '淘宝': '#ff4d00', '京东': '#e2231a', '拼多多': '#e02e24', '抖音': '#010101', '小红书': '#ff2442' };
-        return <Tag color={colors[value] || 'gray'}>{value}</Tag>;
-      },
-    },
-    {
-      title: '客户',
-      dataIndex: 'customer',
-      width: 80,
-    },
-    {
-      title: '商品',
-      dataIndex: 'product',
-      width: 140,
-      ellipsis: true,
-    },
-    {
-      title: '数量',
-      dataIndex: 'quantity',
-      width: 60,
-      align: 'center',
-    },
-    {
-      title: '金额(元)',
-      dataIndex: 'amount',
-      width: 100,
-      sorter: (a, b) => a.amount - b.amount,
-      render: (value) => <Text style={{ color: '#f53f3f', fontWeight: 600 }}>¥{value}</Text>,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 100,
-      render: (value) => {
-        const config = orderStatusMap[value];
-        return (
-          <Tag color={config.color} icon={config.icon}>
-            {config.label}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: '下单时间',
-      dataIndex: 'createTime',
-      width: 170,
-      sorter: (a, b) => new Date(a.createTime) - new Date(b.createTime),
-    },
-    {
-      title: '操作',
-      width: 120,
-      render: (_, record) => (
-        <Space>
-          <Button type="text" size="small" icon={<IconEye />} onClick={() => handleViewDetail(record)}>
-            详情
-          </Button>
-          <Dropdown
-            droplist={
-              <Menu>
-                <Menu.Item key="edit"><IconEdit style={{ marginRight: 8 }} />编辑</Menu.Item>
-                <Menu.Item key="ship"><IconSend style={{ marginRight: 8 }} />发货</Menu.Item>
-                <Menu.Item key="refund" style={{ color: '#f53f3f' }}><IconDelete style={{ marginRight: 8 }} />退款</Menu.Item>
-              </Menu>
-            }
-            position="br"
-          >
-            <Button type="text" size="small" icon={<IconMoreVertical />} />
-          </Dropdown>
-        </Space>
-      ),
-    },
-  ];
+  const getPlatformInfo = (key) => PLATFORMS.find(p => p.key === key) || { name: key, icon: '📦' };
+  const getStatusInfo = (key) => ORDER_STATUS[key] || { label: key, color: '#86909C' };
 
   return (
-    <div>
-      <Title heading={4} style={{ margin: '0 0 16px 0' }}>订单管理</Title>
+    <div className="fade-in">
+      <div className="page-header">
+        <h2 className="page-title">订单管理</h2>
+        <p className="page-desc">管理多平台订单，跟踪物流状态</p>
+      </div>
 
-      {/* Status summary cards */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        {Object.entries(orderStatusMap).map(([key, config]) => (
-          <Col span={3} key={key}>
-            <Card
-              size="small"
-              style={{
-                textAlign: 'center',
-                cursor: 'pointer',
-                borderColor: statusFilter === key ? config.color : undefined,
-                borderWidth: statusFilter === key ? 2 : 1,
-              }}
-              onClick={() => setStatusFilter(statusFilter === key ? 'all' : key)}
-            >
-              <div style={{ fontSize: 12, color: '#86909c', marginBottom: 4 }}>{config.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 600, color: `rgb(${config.color === 'gray' ? '134,144,156' : '22,93,255'})` }}>
-                {statusCounts[key] || 0}
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-
-      {/* Filters and actions */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16} align="center">
-          <Col flex="auto">
-            <Space wrap>
-              <Input
-                prefix={<IconSearch />}
-                placeholder="搜索订单号/客户/商品/物流单号"
-                value={searchText}
-                onChange={setSearchText}
-                style={{ width: 280 }}
-                allowClear
-              />
-              <Select
-                placeholder="平台筛选"
-                value={platformFilter}
-                onChange={setPlatformFilter}
-                style={{ width: 120 }}
-                options={[
-                  { label: '全部平台', value: 'all' },
-                  { label: '淘宝', value: '淘宝' },
-                  { label: '京东', value: '京东' },
-                  { label: '拼多多', value: '拼多多' },
-                  { label: '抖音', value: '抖音' },
-                  { label: '小红书', value: '小红书' },
-                ]}
-              />
-              <RangePicker style={{ width: 240 }} placeholder={['开始日期', '结束日期']} />
-            </Space>
-          </Col>
-          <Col>
-            <Space>
-              <Button icon={<IconRefresh />} onClick={handleRefresh}>刷新</Button>
-              <Button type="primary" icon={<IconSend />} onClick={handleBatchShip}>
-                批量发货{selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
-              </Button>
-              <Button icon={<IconExport />} onClick={handleBatchExport}>导出</Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Orders table */}
-      <Card>
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          data={filteredOrders}
-          pagination={{
-            ...pagination,
-            total: filteredOrders.length,
-            showTotal: (total) => `共 ${total} 条`,
-            showJumper: true,
-            sizeCanChange: true,
-          }}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
-          scroll={{ x: 1200 }}
-          stripe
+      {/* 筛选栏 */}
+      <div className="filter-bar">
+        <input
+          className="filter-input"
+          placeholder="搜索订单号、客户名、手机号..."
+          value={keyword}
+          onChange={e => { setKeyword(e.target.value); setPage(1); }}
         />
-      </Card>
+        <select className="filter-select" value={platform} onChange={e => { setPlatform(e.target.value); setPage(1); }}>
+          <option value="all">全部平台</option>
+          {PLATFORMS.map(p => <option key={p.key} value={p.key}>{p.icon} {p.name}</option>)}
+        </select>
+        <select className="filter-select" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+          <option value="all">全部状态</option>
+          {Object.entries(ORDER_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary">📥 导出</button>
+          <button className="btn btn-primary">➕ 新增订单</button>
+        </div>
+      </div>
 
-      {/* Order detail drawer */}
-      <Drawer
-        width={520}
-        title="订单详情"
-        visible={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        footer={
-          <div style={{ textAlign: 'right' }}>
-            <Button onClick={() => setDetailVisible(false)} style={{ marginRight: 8 }}>关闭</Button>
-            <Button type="primary" onClick={() => { Message.success('操作成功'); setDetailVisible(false); }}>确认发货</Button>
+      {/* 统计条 */}
+      <div style={{
+        display: 'flex',
+        gap: 24,
+        marginBottom: 'var(--spacing-md)',
+        fontSize: 13,
+        color: 'var(--text-3)'
+      }}>
+        <span>共 <b style={{ color: 'var(--text-1)' }}>{filtered.length}</b> 条订单</span>
+        {selected.size > 0 && <span>已选 <b style={{ color: 'var(--primary)' }}>{selected.size}</b> 条</span>}
+      </div>
+
+      {/* 表格 */}
+      <div className="card">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th style={{ width: 40 }}>
+                  <input type="checkbox" checked={selected.size === pageData.length && pageData.length > 0} onChange={toggleAll} />
+                </th>
+                <th>订单号</th>
+                <th>平台</th>
+                <th>客户</th>
+                <th>商品数</th>
+                <th>金额</th>
+                <th>利润</th>
+                <th>状态</th>
+                <th>下单时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageData.map(order => {
+                const plat = getPlatformInfo(order.platform);
+                const st = getStatusInfo(order.status);
+                return (
+                  <tr key={order.id}>
+                    <td>
+                      <input type="checkbox" checked={selected.has(order.id)} onChange={() => toggleSelect(order.id)} />
+                    </td>
+                    <td>
+                      <span className="primary" style={{ cursor: 'pointer' }} onClick={() => setDetailOrder(order)}>
+                        {order.orderNo}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {plat.icon} {plat.name}
+                      </span>
+                    </td>
+                    <td>
+                      <div>{order.customer}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{order.phone}</div>
+                    </td>
+                    <td>{order.items}件</td>
+                    <td style={{ fontWeight: 600 }}>¥{order.amount.toFixed(2)}</td>
+                    <td style={{ color: order.profit > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                      ¥{order.profit.toFixed(2)}
+                    </td>
+                    <td>
+                      <span className="tag" style={{ background: st.color + '18', color: st.color }}>{st.label}</span>
+                    </td>
+                    <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{order.createdAt.slice(0, 16)}</td>
+                    <td>
+                      <button className="btn btn-text btn-sm" onClick={() => setDetailOrder(order)}>详情</button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {pageData.length === 0 && (
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 40, color: 'var(--text-3)' }}>暂无数据</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 分页 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          borderTop: '1px solid var(--border)',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--text-3)' }}>
+            第 {page}/{totalPages} 页
+          </span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
+              <button
+                key={p}
+                className={`btn btn-sm ${p === page ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setPage(p)}
+              >{p}</button>
+            ))}
+            <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>下一页</button>
           </div>
-        }
-      >
-        {currentOrder && (
-          <div>
-            <Descriptions
-              column={1}
-              title="基本信息"
-              data={[
-                { label: '订单编号', value: currentOrder.id },
-                { label: '平台', value: currentOrder.platform },
-                { label: '状态', value: orderStatusMap[currentOrder.status]?.label },
-                { label: '下单时间', value: currentOrder.createTime },
-                { label: '付款时间', value: currentOrder.payTime },
-              ]}
-              style={{ marginBottom: 24 }}
-            />
-            <Descriptions
-              column={1}
-              title="商品信息"
-              data={[
-                { label: '商品名称', value: currentOrder.product },
-                { label: '数量', value: currentOrder.quantity },
-                { label: '金额', value: `¥${currentOrder.amount}` },
-              ]}
-              style={{ marginBottom: 24 }}
-            />
-            <Descriptions
-              column={1}
-              title="收货信息"
-              data={[
-                { label: '客户', value: currentOrder.customer },
-                { label: '电话', value: currentOrder.phone },
-                { label: '地址', value: currentOrder.address },
-                { label: '物流单号', value: currentOrder.trackingNo },
-              ]}
-              style={{ marginBottom: 24 }}
-            />
-            {currentOrder.remark && (
-              <Descriptions
-                column={1}
-                title="备注"
-                data={[{ label: '买家留言', value: currentOrder.remark }]}
-              />
-            )}
+        </div>
+      </div>
+
+      {/* 订单详情弹窗 */}
+      {detailOrder && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setDetailOrder(null)}>
+          <div style={{
+            background: '#fff', borderRadius: 12, padding: 28, width: 520, maxHeight: '80vh', overflow: 'auto',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 600 }}>订单详情</h3>
+              <button onClick={() => setDetailOrder(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-3)' }}>✕</button>
+            </div>
+            {[
+              ['订单号', detailOrder.orderNo],
+              ['平台', getPlatformInfo(detailOrder.platform).name],
+              ['客户', detailOrder.customer],
+              ['电话', detailOrder.phone],
+              ['地址', detailOrder.address],
+              ['商品数', `${detailOrder.items} 件`],
+              ['订单金额', `¥${detailOrder.amount.toFixed(2)}`],
+              ['利润', `¥${detailOrder.profit.toFixed(2)}`],
+              ['支付方式', detailOrder.paymentMethod],
+              ['状态', getStatusInfo(detailOrder.status).label],
+              ['物流单号', detailOrder.logisticsNo || '-'],
+              ['下单时间', detailOrder.createdAt],
+              ['备注', detailOrder.remark || '-'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ width: 100, color: 'var(--text-3)', flexShrink: 0 }}>{label}</span>
+                <span style={{ color: 'var(--text-1)' }}>{value}</span>
+              </div>
+            ))}
           </div>
-        )}
-      </Drawer>
+        </div>
+      )}
     </div>
   );
 }
