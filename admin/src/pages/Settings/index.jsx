@@ -237,7 +237,7 @@ export default function Settings() {
                     </div>
                     <div style={{ marginLeft: 'auto' }}>
                       {douyinConnected ? (
-                        <button className="btn btn-secondary btn-sm" onClick={() => { setDouyinConnected(false); localStorage.removeItem('douyin_token'); }}>
+                        <button className="btn btn-default btn-sm" onClick={() => { setDouyinConnected(false); localStorage.removeItem('douyin_token'); }}>
                           断开连接
                         </button>
                       ) : (

@@ -1,236 +1,182 @@
 /**
- * 数据概览 Dashboard v2
- * 实时刷新 + 日期范围选择 + 交互式图表 + 待办快捷操作
+ * 工作台 Dashboard - CRMEB风格
+ * 四大数据卡 + 订单趋势 + 用户趋势 + 待办事项
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { generateDashboardStats, PLATFORMS } from '../../utils/mock';
+import { generateDashboardStats } from '../../utils/mock';
 import { Chart } from '@antv/g2';
 
-// 趋势图
-function TrendChart({ data, xField, yField, color = '#165DFF', height = 220 }) {
-  const containerRef = useRef(null);
+function AreaChart({ data, xField, yField, color = '#1890FF', height = 260 }) {
+  const ref = useRef(null);
   const chartRef = useRef(null);
-
   useEffect(() => {
-    if (!containerRef.current || !data?.length) return;
+    if (!ref.current || !data?.length) return;
     if (chartRef.current) chartRef.current.destroy();
-
-    const chart = new Chart({ container: containerRef.current, autoFit: true, height });
-    chart.line().data(data).encode('x', xField).encode('y', yField).encode('shape', 'smooth')
-      .style('stroke', color).style('lineWidth', 2.5).style('opacity', 0.9);
+    const chart = new Chart({ container: ref.current, autoFit: true, height });
     chart.area().data(data).encode('x', xField).encode('y', yField).encode('shape', 'smooth')
-      .style('fill', `l(90) 0:${color}33 1:${color}05`);
+      .style('fill', `l(90) 0:${color}30 1:${color}03`).style('fillOpacity', 1);
+    chart.line().data(data).encode('x', xField).encode('y', yField).encode('shape', 'smooth')
+      .style('stroke', color).style('lineWidth', 2);
     chart.interaction('tooltip', { crosshairs: true });
     chart.render();
     chartRef.current = chart;
     return () => { chart.destroy(); chartRef.current = null; };
   }, [data, xField, yField, color, height]);
-
-  return <div ref={containerRef} />;
+  return <div ref={ref} />;
 }
 
-// 平台饼图
-function PlatformPie({ data }) {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !data?.length) return;
-    if (chartRef.current) chartRef.current.destroy();
-
-    const chart = new Chart({ container: containerRef.current, autoFit: true, height: 260 });
-    chart.coordinate({ type: 'theta', innerRadius: 0.6 });
-    chart.interval().data(data).transform({ type: 'stackY' }).encode('y', 'value').encode('color', 'platform')
-      .scale('color', { range: data.map(d => d.color) }).style('stroke', '#fff').style('lineWidth', 2);
-    chart.text().style('text', '平台分布').style('x', '50%').style('y', '50%')
-      .style('fontSize', 14).style('fill', '#86909C').style('textAlign', 'center');
-    chart.interaction('elementHighlight', true);
-    chart.interaction('tooltip', true);
-    chart.render();
-    chartRef.current = chart;
-    return () => { chart.destroy(); chartRef.current = null; };
-  }, [data]);
-
-  return <div ref={containerRef} />;
-}
-
-// 品类柱状图
-function CategoryBar({ data }) {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !data?.length) return;
-    if (chartRef.current) chartRef.current.destroy();
-
-    const chart = new Chart({ container: containerRef.current, autoFit: true, height: 260 });
-    chart.interval().data(data).encode('x', 'category').encode('y', 'sales')
-      .style('fill', '#165DFF').style('radiusTopLeft', 4).style('radiusTopRight', 4)
-      .axis('x', { labelAutoRotate: false });
-    chart.interaction('elementHighlight', true);
-    chart.interaction('tooltip', true);
-    chart.render();
-    chartRef.current = chart;
-    return () => { chart.destroy(); chartRef.current = null; };
-  }, [data]);
-
-  return <div ref={containerRef} />;
-}
-
-const fmtMoney = (n) => `¥${Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
+const fmt = (n) => Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
-  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const refresh = useCallback(() => {
     setLoading(true);
-    setTimeout(() => {
-      setStats(generateDashboardStats());
-      setLastRefresh(new Date());
-      setLoading(false);
-    }, 500);
+    setTimeout(() => { setStats(generateDashboardStats()); setLoading(false); }, 400);
   }, []);
 
   useEffect(() => { refresh(); }, []);
 
-  // 自动刷新
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const timer = setInterval(refresh, 30000);
-    return () => clearInterval(timer);
-  }, [autoRefresh, refresh]);
-
   if (!stats) return <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-3)' }}>加载中...</div>;
 
-  const statCards = [
-    { title: '今日订单', value: stats.todayOrders, trend: stats.ordersTrend, suffix: '单', icon: '📦', iconBg: '#E8F0FF' },
-    { title: '今日营收', value: fmtMoney(stats.todayRevenue), trend: stats.revenueTrend, suffix: '', icon: '💰', iconBg: '#E8FFEA' },
-    { title: '今日客户', value: stats.todayCustomers, trend: stats.customersTrend, suffix: '人', icon: '👥', iconBg: '#FFF3E8' },
-    { title: '转化率', value: `${stats.conversionRate}%`, trend: stats.conversionTrend, suffix: '', icon: '📈', iconBg: '#F2E8FF' },
+  const cards = [
+    {
+      title: '销售额', icon: '💰', iconBg: '#E6F7FF', iconColor: '#1890FF',
+      value: `¥${fmt(stats.todayRevenue)}`,
+      today: `今日 ${fmt(stats.todayRevenue)}`,
+      yesterday: `昨日 ${fmt(stats.todayRevenue * (100 - stats.ordersTrend) / 100)}`,
+      trend: stats.revenueTrend,
+      monthly: `本月销售额 ¥${fmt(stats.todayRevenue * 28)}元`,
+    },
+    {
+      title: '用户访问量', icon: '👥', iconBg: '#FFF7E6', iconColor: '#FA8C16',
+      value: stats.todayCustomers,
+      today: `今日 ${stats.todayCustomers}`,
+      yesterday: `昨日 ${Math.round(stats.todayCustomers * (100 - stats.customersTrend) / 100)}`,
+      trend: stats.customersTrend,
+      monthly: `本月访问量 ${Math.round(stats.todayCustomers * 28)}Pv`,
+    },
+    {
+      title: '订单量', icon: '📦', iconBg: '#F6FFED', iconColor: '#52C41A',
+      value: stats.todayOrders,
+      today: `今日 ${stats.todayOrders}`,
+      yesterday: `昨日 ${Math.round(stats.todayOrders * (100 - stats.ordersTrend) / 100)}`,
+      trend: stats.ordersTrend,
+      monthly: `本月订单量 ${stats.todayOrders * 28}单`,
+    },
+    {
+      title: '新增用户', icon: '➕', iconBg: '#F9F0FF', iconColor: '#722ED1',
+      value: Math.round(stats.todayCustomers * 0.3),
+      today: `今日 ${Math.round(stats.todayCustomers * 0.3)}`,
+      yesterday: `昨日 ${Math.round(stats.todayCustomers * 0.25)}`,
+      trend: stats.customersTrend - 5,
+      monthly: `本月新增用户 ${Math.round(stats.todayCustomers * 0.3 * 28)}人`,
+    },
   ];
 
   const tasks = [
-    { label: '待处理订单', value: stats.pendingTasks.pendingOrders, color: '#FF7D00', icon: '📋', action: '去处理' },
-    { label: '待处理退款', value: stats.pendingTasks.pendingRefunds, color: '#F53F3F', icon: '💸', action: '去处理' },
-    { label: '库存预警', value: stats.pendingTasks.lowStockProducts, color: '#FF7D00', icon: '⚠️', action: '去查看' },
-    { label: '未读消息', value: stats.pendingTasks.unreadMessages, color: '#165DFF', icon: '💬', action: '去回复' },
-    { label: '竞品预警', value: stats.pendingTasks.competitorAlerts, color: '#7B61FF', icon: '🔔', action: '去分析' },
+    { label: '待处理订单', value: stats.pendingTasks.pendingOrders, color: '#FA8C16' },
+    { label: '待处理退款', value: stats.pendingTasks.pendingRefunds, color: '#F5222D' },
+    { label: '库存预警', value: stats.pendingTasks.lowStockProducts, color: '#FA8C16' },
+    { label: '未读消息', value: stats.pendingTasks.unreadMessages, color: '#1890FF' },
+    { label: '竞品预警', value: stats.pendingTasks.competitorAlerts, color: '#722ED1' },
   ];
 
   return (
     <div className="fade-in">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h2 className="page-title">数据概览</h2>
-          <p className="page-desc">实时监控多平台电商运营数据</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-            最后刷新: {lastRefresh.toLocaleTimeString()}
-          </span>
-          <div
-            className={`switch ${autoRefresh ? 'on' : ''}`}
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            style={{ transform: 'scale(0.8)' }}
-          />
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>自动</span>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={refresh}
-            disabled={loading}
-          >{loading ? '⏳ 刷新中...' : '🔄 刷新数据'}</button>
-        </div>
-      </div>
-
-      {/* 统计卡片 */}
+      {/* 四大数据卡 */}
       <div className="stats-grid">
-        {statCards.map((card, i) => (
+        {cards.map((card, i) => (
           <div className="stat-card" key={i}>
-            <div className="stat-card-header">
+            <div className="stat-card-top">
               <span className="stat-card-title">{card.title}</span>
               <div className="stat-card-icon" style={{ background: card.iconBg }}>{card.icon}</div>
             </div>
-            <div className="stat-card-value">{card.value}{card.suffix}</div>
-            <div className={`stat-card-trend ${card.trend >= 0 ? 'up' : 'down'}`}>
-              {card.trend >= 0 ? '↑' : '↓'} {Math.abs(card.trend)}%
-              <span style={{ color: 'var(--text-3)', marginLeft: 4 }}>较昨日</span>
+            <div className="stat-card-value">{card.value}</div>
+            <div className="stat-card-footer">
+              <span>{card.today}</span>
+              <span>{card.yesterday}</span>
+              <span>日环比
+                <b className={card.trend >= 0 ? 'trend-up' : 'trend-down'} style={{ marginLeft: 4 }}>
+                  {card.trend >= 0 ? '+' : ''}{card.trend}%
+                </b>
+              </span>
             </div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8 }}>{card.monthly}</div>
           </div>
         ))}
       </div>
 
-      {/* 趋势图 + 待办 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
+      {/* 图表区域 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <div className="card">
           <div className="card-header">
-            <span className="card-title">近7天营收趋势</span>
+            <span className="card-title">订单</span>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {['30天', '周', '月', '年'].map((t, i) => (
+                <span key={t} style={{ fontSize: 13, color: i === 0 ? 'var(--primary)' : 'var(--text-3)', cursor: 'pointer' }}>{t}</span>
+              ))}
+            </div>
           </div>
           <div className="card-body">
-            <TrendChart data={stats.weeklyTrend} xField="date" yField="revenue" color="#165DFF" />
+            <AreaChart data={stats.weeklyTrend} xField="date" yField="orders" color="#1890FF" />
           </div>
         </div>
         <div className="card">
           <div className="card-header">
-            <span className="card-title">待办事项</span>
+            <span className="card-title">用户</span>
           </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            {tasks.map((task, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 20px',
-                borderBottom: i < tasks.length - 1 ? '1px solid var(--border)' : 'none',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span>{task.icon}</span>
-                  <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{task.label}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: task.color }}>{task.value}</span>
-                  {task.value > 0 && (
-                    <button className="btn btn-text btn-sm" style={{ fontSize: 12 }}>{task.action}</button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="card-body">
+            <AreaChart data={stats.weeklyTrend} xField="date" yField="customers" color="#52C41A" />
           </div>
         </div>
       </div>
 
-      {/* 底部三栏 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-lg)' }}>
+      {/* 底部：待办 + 热销 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
         <div className="card">
-          <div className="card-header"><span className="card-title">平台营收分布</span></div>
-          <div className="card-body"><PlatformPie data={stats.platformDistribution} /></div>
-        </div>
-        <div className="card">
-          <div className="card-header"><span className="card-title">品类销售排名</span></div>
-          <div className="card-body"><CategoryBar data={stats.categorySales} /></div>
+          <div className="card-header"><span className="card-title">待办事项</span></div>
+          <div className="card-body" style={{ padding: 0 }}>
+            {tasks.map((t, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: i < tasks.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ color: 'var(--text-2)' }}>{t.label}</span>
+                <span style={{ fontSize: 18, fontWeight: 600, color: t.color }}>{t.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="card">
           <div className="card-header"><span className="card-title">热销商品 TOP 5</span></div>
           <div className="card-body" style={{ padding: 0 }}>
             {stats.topProducts.map((p, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', padding: '12px 20px',
-                borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
-              }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: i < 4 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: i < 3 ? ['#FF7D00', '#165DFF', '#00B42A'][i] : 'var(--bg-3)',
+                  width: 20, height: 20, borderRadius: 2, marginRight: 10, flexShrink: 0,
+                  background: i < 3 ? ['#F5222D', '#1890FF', '#52C41A'][i] : '#F0F0F0',
                   color: i < 3 ? '#fff' : 'var(--text-3)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700, marginRight: 12, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
                 }}>{p.rank}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>销量 {p.sales}</div>
+                  <div style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)' }}>销量 {p.sales}</div>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)' }}>{fmtMoney(p.revenue)}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>¥{fmt(p.revenue)}</span>
               </div>
             ))}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header"><span className="card-title">购买用户统计</span></div>
+          <div className="card-body">
+            <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '20px 0' }}>
+              <div style={{ fontSize: 40, fontWeight: 700, color: 'var(--text-1)' }}>{Math.round(stats.todayCustomers * 0.6)}</div>
+              <div style={{ marginTop: 8 }}>今日购买用户</div>
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-around', fontSize: 13 }}>
+                <div><div style={{ fontWeight: 600, color: 'var(--text-1)' }}>{Math.round(stats.todayCustomers * 0.1)}</div><div style={{ color: 'var(--text-3)' }}>老用户</div></div>
+                <div><div style={{ fontWeight: 600, color: 'var(--text-1)' }}>{Math.round(stats.todayCustomers * 0.5)}</div><div style={{ color: 'var(--text-3)' }}>新用户</div></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -209,8 +209,8 @@ export default function CustomerService() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn-secondary btn-sm">📋 工单</button>
-                  <button className="btn btn-secondary btn-sm">✅ 标记已解决</button>
+                  <button className="btn btn-default btn-sm">📋 工单</button>
+                  <button className="btn btn-default btn-sm">✅ 标记已解决</button>
                 </div>
               </div>
 

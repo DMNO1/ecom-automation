@@ -130,13 +130,13 @@ export default function Orders() {
       {/* 状态快捷筛选 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--spacing-md)', flexWrap: 'wrap' }}>
         <button
-          className={`btn btn-sm ${status === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn btn-sm ${status === 'all' ? 'btn-primary' : 'btn-default'}`}
           onClick={() => { setStatus('all'); setPage(1); }}
         >全部 ({orders.length})</button>
         {Object.entries(ORDER_STATUS).map(([k, v]) => (
           <button
             key={k}
-            className={`btn btn-sm ${status === k ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn btn-sm ${status === k ? 'btn-primary' : 'btn-default'}`}
             onClick={() => { setStatus(k); setPage(1); }}
             style={status === k ? {} : { borderColor: v.color, color: v.color }}
           >
@@ -158,7 +158,7 @@ export default function Orders() {
           {PLATFORMS.map(p => <option key={p.key} value={p.key}>{p.icon} {p.name}</option>)}
         </select>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={() => exportCSV(filtered)}>📥 导出CSV</button>
+          <button className="btn btn-default" onClick={() => exportCSV(filtered)}>📥 导出CSV</button>
           <button className="btn btn-primary">➕ 新增订单</button>
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function Orders() {
               disabled={!batchAction}
               onClick={executeBatchAction}
             >执行</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>取消选择</button>
+            <button className="btn btn-default btn-sm" onClick={() => setSelected(new Set())}>取消选择</button>
           </div>
         </div>
       )}
@@ -274,11 +274,11 @@ export default function Orders() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
           <span style={{ fontSize: 13, color: 'var(--text-3)' }}>第 {page}/{totalPages} 页</span>
           <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</button>
+            <button className="btn btn-default btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</button>
             {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
-              <button key={p} className={`btn btn-sm ${p === page ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPage(p)}>{p}</button>
+              <button key={p} className={`btn btn-sm ${p === page ? 'btn-primary' : 'btn-default'}`} onClick={() => setPage(p)}>{p}</button>
             ))}
-            <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>下一页</button>
+            <button className="btn btn-default btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>下一页</button>
           </div>
         </div>
       </div>

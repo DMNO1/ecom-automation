@@ -110,8 +110,8 @@ export default function Products() {
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary">📥 导入</button>
-          <button className="btn btn-secondary">📤 导出</button>
+          <button className="btn btn-default">📥 导入</button>
+          <button className="btn btn-default">📤 导出</button>
           <button className="btn btn-primary">➕ 添加商品</button>
         </div>
       </div>
@@ -218,8 +218,8 @@ export default function Products() {
             共 {filtered.length} 件商品，第 {page}/{totalPages} 页
           </span>
           <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</button>
-            <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>下一页</button>
+            <button className="btn btn-default btn-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</button>
+            <button className="btn btn-default btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>下一页</button>
           </div>
         </div>
       </div>
