@@ -12,6 +12,50 @@ const STATUS_MAP = {
   ai_handling: { label: 'AI处理中', color: '#7B61FF' },
 };
 
+// 快捷回复模板库
+const QUICK_TEMPLATES = {
+  greeting: {
+    label: '👋 问候',
+    templates: [
+      '亲，您好！欢迎光临，请问有什么可以帮您的？😊',
+      '亲爱的顾客，感谢您的咨询，有什么需要帮助的吗？',
+      'Hi~欢迎来到我们的店铺，请问您想了解什么呢？',
+    ]
+  },
+  shipping: {
+    label: '📦 物流',
+    templates: [
+      '亲，我们默认发顺丰快递，一般1-3天到达，偏远地区3-5天哦~',
+      '您的包裹已发出，物流单号稍后发给您，请注意查收~',
+      '亲，已为您催促快递，预计今天会更新物流信息~',
+    ]
+  },
+  refund: {
+    label: '💰 退换',
+    templates: [
+      '亲，7天无理由退换货，质量问题我们包运费哦~',
+      '非常抱歉给您带来不便，已为您申请退款，1-3个工作日到账~',
+      '亲，收到货不满意可以退的，您寄回来我们承担运费~',
+    ]
+  },
+  promotion: {
+    label: '🎁 促销',
+    templates: [
+      '亲，现在店铺有满200减30的活动哦，很划算的！',
+      '新客可以领取10元无门槛优惠券，下单立减~',
+      '亲，今天下单还有赠品送哦，数量有限先到先得！',
+    ]
+  },
+  closing: {
+    label: '👋 结束',
+    templates: [
+      '感谢您的咨询，祝您生活愉快！有问题随时找我们哦~😊',
+      '好的，已经帮您处理好了，还有其他需要帮助的吗？',
+      '感谢您的耐心等待，祝您购物愉快！⭐⭐⭐⭐⭐',
+    ]
+  },
+};
+
 export default function CustomerService() {
   const [conversations] = useState(() => generateConversations(12));
   const [activeId, setActiveId] = useState(conversations[0]?.id);
@@ -180,35 +224,47 @@ export default function CustomerService() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* AI 建议 */}
-              {aiAssist && (
-                <div style={{
-                  padding: '8px 16px',
-                  borderTop: '1px solid var(--border)',
-                  background: '#F8F9FF',
-                }}>
-                  <div style={{ fontSize: 12, color: '#7B61FF', marginBottom: 6 }}>🤖 AI建议回复：</div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {aiSuggestions.map((s, i) => (
+              {/* 快捷回复模板 */}
+              <div style={{
+                padding: '8px 16px',
+                borderTop: '1px solid var(--border)',
+                background: '#FAFBFC',
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>⚡ 快捷回复：</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {Object.entries(QUICK_TEMPLATES).map(([key, group]) => (
+                    <div key={key} style={{ position: 'relative' }} className="template-group">
                       <button
-                        key={i}
                         className="btn btn-sm"
-                        style={{
-                          background: '#F2E8FF',
-                          color: '#7B61FF',
-                          border: '1px solid #D3ADF7',
-                          fontSize: 12,
-                          maxWidth: 250,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                        style={{ background: 'var(--bg-3)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--text-2)' }}
+                        onClick={(e) => {
+                          // Toggle dropdown
+                          const el = e.currentTarget.nextElementSibling;
+                          document.querySelectorAll('.template-dropdown').forEach(d => d.style.display = 'none');
+                          el.style.display = el.style.display === 'block' ? 'none' : 'block';
                         }}
-                        onClick={() => setInputMsg(s)}
-                      >{s}</button>
-                    ))}
-                  </div>
+                      >{group.label}</button>
+                      <div className="template-dropdown" style={{
+                        display: 'none', position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
+                        background: '#fff', border: '1px solid var(--border)', borderRadius: 8,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 8, zIndex: 100,
+                        minWidth: 280, maxHeight: 200, overflowY: 'auto',
+                      }}>
+                        {group.templates.map((t, i) => (
+                          <div key={i} style={{
+                            padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13,
+                            color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 2,
+                          }}
+                            onMouseEnter={e => e.target.style.background = 'var(--bg-2)'}
+                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            onClick={() => { setInputMsg(t); document.querySelectorAll('.template-dropdown').forEach(d => d.style.display = 'none'); }}
+                          >{t}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* 输入区 */}
               <div className="chat-input-area">

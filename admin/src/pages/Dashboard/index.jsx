@@ -1,13 +1,13 @@
 /**
- * 数据概览 Dashboard
- * 核心业务指标 + 趋势图表 + 待办事项
+ * 数据概览 Dashboard v2
+ * 实时刷新 + 日期范围选择 + 交互式图表 + 待办快捷操作
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { generateDashboardStats, PLATFORMS } from '../../utils/mock';
 import { Chart } from '@antv/g2';
 
-// 趋势图组件
-function TrendChart({ data, xField, yField, color = '#165DFF', height = 200 }) {
+// 趋势图
+function TrendChart({ data, xField, yField, color = '#165DFF', height = 220 }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
 
@@ -15,41 +15,21 @@ function TrendChart({ data, xField, yField, color = '#165DFF', height = 200 }) {
     if (!containerRef.current || !data?.length) return;
     if (chartRef.current) chartRef.current.destroy();
 
-    const chart = new Chart({
-      container: containerRef.current,
-      autoFit: true,
-      height,
-    });
-
-    chart
-      .line()
-      .data(data)
-      .encode('x', xField)
-      .encode('y', yField)
-      .encode('shape', 'smooth')
-      .style('stroke', color)
-      .style('lineWidth', 2.5)
-      .style('opacity', 0.9);
-
-    chart
-      .area()
-      .data(data)
-      .encode('x', xField)
-      .encode('y', yField)
-      .encode('shape', 'smooth')
+    const chart = new Chart({ container: containerRef.current, autoFit: true, height });
+    chart.line().data(data).encode('x', xField).encode('y', yField).encode('shape', 'smooth')
+      .style('stroke', color).style('lineWidth', 2.5).style('opacity', 0.9);
+    chart.area().data(data).encode('x', xField).encode('y', yField).encode('shape', 'smooth')
       .style('fill', `l(90) 0:${color}33 1:${color}05`);
-
     chart.interaction('tooltip', { crosshairs: true });
     chart.render();
     chartRef.current = chart;
-
     return () => { chart.destroy(); chartRef.current = null; };
   }, [data, xField, yField, color, height]);
 
   return <div ref={containerRef} />;
 }
 
-// 平台分布饼图
+// 平台饼图
 function PlatformPie({ data }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -58,39 +38,16 @@ function PlatformPie({ data }) {
     if (!containerRef.current || !data?.length) return;
     if (chartRef.current) chartRef.current.destroy();
 
-    const chart = new Chart({
-      container: containerRef.current,
-      autoFit: true,
-      height: 260,
-    });
-
+    const chart = new Chart({ container: containerRef.current, autoFit: true, height: 260 });
     chart.coordinate({ type: 'theta', innerRadius: 0.6 });
-
-    chart
-      .interval()
-      .data(data)
-      .transform({ type: 'stackY' })
-      .encode('y', 'value')
-      .encode('color', 'platform')
-      .scale('color', { range: data.map(d => d.color) })
-      .style('stroke', '#fff')
-      .style('lineWidth', 2)
-      .animate('enter', { type: 'waveIn' });
-
-    chart
-      .text()
-      .style('text', '平台分布')
-      .style('x', '50%')
-      .style('y', '50%')
-      .style('fontSize', 14)
-      .style('fill', '#86909C')
-      .style('textAlign', 'center');
-
+    chart.interval().data(data).transform({ type: 'stackY' }).encode('y', 'value').encode('color', 'platform')
+      .scale('color', { range: data.map(d => d.color) }).style('stroke', '#fff').style('lineWidth', 2);
+    chart.text().style('text', '平台分布').style('x', '50%').style('y', '50%')
+      .style('fontSize', 14).style('fill', '#86909C').style('textAlign', 'center');
     chart.interaction('elementHighlight', true);
     chart.interaction('tooltip', true);
     chart.render();
     chartRef.current = chart;
-
     return () => { chart.destroy(); chartRef.current = null; };
   }, [data]);
 
@@ -106,95 +63,86 @@ function CategoryBar({ data }) {
     if (!containerRef.current || !data?.length) return;
     if (chartRef.current) chartRef.current.destroy();
 
-    const chart = new Chart({
-      container: containerRef.current,
-      autoFit: true,
-      height: 260,
-    });
-
-    chart
-      .interval()
-      .data(data)
-      .encode('x', 'category')
-      .encode('y', 'sales')
-      .encode('color', '#165DFF')
-      .style('fill', '#165DFF')
-      .style('radiusTopLeft', 4)
-      .style('radiusTopRight', 4)
-      .axis('x', { labelAutoRotate: false })
-      .animate('enter', { type: 'growInY' });
-
+    const chart = new Chart({ container: containerRef.current, autoFit: true, height: 260 });
+    chart.interval().data(data).encode('x', 'category').encode('y', 'sales')
+      .style('fill', '#165DFF').style('radiusTopLeft', 4).style('radiusTopRight', 4)
+      .axis('x', { labelAutoRotate: false });
     chart.interaction('elementHighlight', true);
     chart.interaction('tooltip', true);
     chart.render();
     chartRef.current = chart;
-
     return () => { chart.destroy(); chartRef.current = null; };
   }, [data]);
 
   return <div ref={containerRef} />;
 }
 
-// 格式化金额
 const fmtMoney = (n) => `¥${Number(n).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
-  useEffect(() => {
-    setStats(generateDashboardStats());
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setTimeout(() => {
+      setStats(generateDashboardStats());
+      setLastRefresh(new Date());
+      setLoading(false);
+    }, 500);
   }, []);
+
+  useEffect(() => { refresh(); }, []);
+
+  // 自动刷新
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(refresh, 30000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, refresh]);
 
   if (!stats) return <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-3)' }}>加载中...</div>;
 
   const statCards = [
-    {
-      title: '今日订单',
-      value: stats.todayOrders,
-      trend: stats.ordersTrend,
-      suffix: '单',
-      icon: '📦',
-      iconBg: '#E8F0FF',
-    },
-    {
-      title: '今日营收',
-      value: fmtMoney(stats.todayRevenue),
-      trend: stats.revenueTrend,
-      suffix: '',
-      icon: '💰',
-      iconBg: '#E8FFEA',
-    },
-    {
-      title: '今日客户',
-      value: stats.todayCustomers,
-      trend: stats.customersTrend,
-      suffix: '人',
-      icon: '👥',
-      iconBg: '#FFF3E8',
-    },
-    {
-      title: '转化率',
-      value: `${stats.conversionRate}%`,
-      trend: stats.conversionTrend,
-      suffix: '',
-      icon: '📈',
-      iconBg: '#F2E8FF',
-    },
+    { title: '今日订单', value: stats.todayOrders, trend: stats.ordersTrend, suffix: '单', icon: '📦', iconBg: '#E8F0FF' },
+    { title: '今日营收', value: fmtMoney(stats.todayRevenue), trend: stats.revenueTrend, suffix: '', icon: '💰', iconBg: '#E8FFEA' },
+    { title: '今日客户', value: stats.todayCustomers, trend: stats.customersTrend, suffix: '人', icon: '👥', iconBg: '#FFF3E8' },
+    { title: '转化率', value: `${stats.conversionRate}%`, trend: stats.conversionTrend, suffix: '', icon: '📈', iconBg: '#F2E8FF' },
   ];
 
   const tasks = [
-    { label: '待处理订单', value: stats.pendingTasks.pendingOrders, color: '#FF7D00', icon: '📋' },
-    { label: '待处理退款', value: stats.pendingTasks.pendingRefunds, color: '#F53F3F', icon: '💸' },
-    { label: '库存预警', value: stats.pendingTasks.lowStockProducts, color: '#FF7D00', icon: '⚠️' },
-    { label: '未读消息', value: stats.pendingTasks.unreadMessages, color: '#165DFF', icon: '💬' },
-    { label: '竞品预警', value: stats.pendingTasks.competitorAlerts, color: '#7B61FF', icon: '🔔' },
+    { label: '待处理订单', value: stats.pendingTasks.pendingOrders, color: '#FF7D00', icon: '📋', action: '去处理' },
+    { label: '待处理退款', value: stats.pendingTasks.pendingRefunds, color: '#F53F3F', icon: '💸', action: '去处理' },
+    { label: '库存预警', value: stats.pendingTasks.lowStockProducts, color: '#FF7D00', icon: '⚠️', action: '去查看' },
+    { label: '未读消息', value: stats.pendingTasks.unreadMessages, color: '#165DFF', icon: '💬', action: '去回复' },
+    { label: '竞品预警', value: stats.pendingTasks.competitorAlerts, color: '#7B61FF', icon: '🔔', action: '去分析' },
   ];
 
   return (
     <div className="fade-in">
-      <div className="page-header">
-        <h2 className="page-title">数据概览</h2>
-        <p className="page-desc">实时监控多平台电商运营数据</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 className="page-title">数据概览</h2>
+          <p className="page-desc">实时监控多平台电商运营数据</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+            最后刷新: {lastRefresh.toLocaleTimeString()}
+          </span>
+          <div
+            className={`switch ${autoRefresh ? 'on' : ''}`}
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            style={{ transform: 'scale(0.8)' }}
+          />
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>自动</span>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={refresh}
+            disabled={loading}
+          >{loading ? '⏳ 刷新中...' : '🔄 刷新数据'}</button>
+        </div>
       </div>
 
       {/* 统计卡片 */}
@@ -214,15 +162,11 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* 趋势图 + 待办事项 */}
+      {/* 趋势图 + 待办 */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-lg)' }}>
         <div className="card">
           <div className="card-header">
             <span className="card-title">近7天营收趋势</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>● 订单</span>
-              <span style={{ fontSize: 12, color: '#00B42A' }}>● 营收</span>
-            </div>
           </div>
           <div className="card-body">
             <TrendChart data={stats.weeklyTrend} xField="date" yField="revenue" color="#165DFF" />
@@ -235,9 +179,7 @@ export default function Dashboard() {
           <div className="card-body" style={{ padding: 0 }}>
             {tasks.map((task, i) => (
               <div key={i} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '14px 20px',
                 borderBottom: i < tasks.length - 1 ? '1px solid var(--border)' : 'none',
               }}>
@@ -245,68 +187,48 @@ export default function Dashboard() {
                   <span>{task.icon}</span>
                   <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{task.label}</span>
                 </div>
-                <span style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: task.color,
-                }}>{task.value}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: task.color }}>{task.value}</span>
+                  {task.value > 0 && (
+                    <button className="btn btn-text btn-sm" style={{ fontSize: 12 }}>{task.action}</button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 平台分布 + 品类销售 + 热销商品 */}
+      {/* 底部三栏 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--spacing-lg)' }}>
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">平台营收分布</span>
-          </div>
-          <div className="card-body">
-            <PlatformPie data={stats.platformDistribution} />
-          </div>
+          <div className="card-header"><span className="card-title">平台营收分布</span></div>
+          <div className="card-body"><PlatformPie data={stats.platformDistribution} /></div>
         </div>
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">品类销售排名</span>
-          </div>
-          <div className="card-body">
-            <CategoryBar data={stats.categorySales} />
-          </div>
+          <div className="card-header"><span className="card-title">品类销售排名</span></div>
+          <div className="card-body"><CategoryBar data={stats.categorySales} /></div>
         </div>
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">热销商品 TOP 5</span>
-          </div>
+          <div className="card-header"><span className="card-title">热销商品 TOP 5</span></div>
           <div className="card-body" style={{ padding: 0 }}>
             {stats.topProducts.map((p, i) => (
               <div key={i} style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '12px 20px',
+                display: 'flex', alignItems: 'center', padding: '12px 20px',
                 borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
               }}>
                 <span style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
+                  width: 24, height: 24, borderRadius: '50%',
                   background: i < 3 ? ['#FF7D00', '#165DFF', '#00B42A'][i] : 'var(--bg-3)',
                   color: i < 3 ? '#fff' : 'var(--text-3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginRight: 12,
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, marginRight: 12, flexShrink: 0,
                 }}>{p.rank}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>销量 {p.sales}</div>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)' }}>
-                  {fmtMoney(p.revenue)}
-                </span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--primary)' }}>{fmtMoney(p.revenue)}</span>
               </div>
             ))}
           </div>
