@@ -165,7 +165,7 @@ export default function Competitors() {
           </div>
         </div>
         <div className="stat-card"><div className="stat-card-title">我方有优势</div><div className="stat-card-value" style={{ fontSize: 24, color: 'var(--success)' }}>{cheaperCount}</div></div>
-        <div className="stat-card"><div className="stat-card-title">价格偏高(>10%)</div><div className="stat-card-value" style={{ fontSize: 24, color: 'var(--danger)' }}>{criticalCount}</div></div>
+        <div className="stat-card"><div className="stat-card-title">价格偏高(&gt;10%)</div><div className="stat-card-value" style={{ fontSize: 24, color: 'var(--danger)' }}>{criticalCount}</div></div>
       </div>
 
       {/* 总览模式 */}

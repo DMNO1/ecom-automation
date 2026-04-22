@@ -1,334 +1,474 @@
-/**
- * 工作台 Dashboard v3 - 商业级
- * 实时业务监控 + 待办工作流 + 异常预警 + 利润分析 + 平台对比
- */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { generateOrders, generateProducts, PLATFORMS } from '../../utils/mock';
+import React, { useState, useEffect } from 'react';
+import { Row, Col, Card, Statistic, Table, Tag, Progress, Tabs, DatePicker, Select, Space, Button, List, Avatar, Typography, Divider, Alert } from 'antd';
+import {
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  ShoppingCartOutlined,
+  UserOutlined,
+  DollarOutlined,
+  ShoppingOutlined,
+  ExclamationCircleOutlined,
+  WarningOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+} from '@ant-design/icons';
+import { Line, Pie, Column } from '@ant-design/plots';
+import dayjs from 'dayjs';
 
-function MiniChart({ data, color = '#1890FF', height = 60 }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!ref.current || !data?.length) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = ref.current.clientWidth;
-    canvas.height = height;
-    canvas.style.width = '100%';
-    canvas.style.height = height + 'px';
-    ref.current.innerHTML = '';
-    ref.current.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
-    const max = Math.max(...data);
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const stepX = canvas.width / (data.length - 1);
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    data.forEach((v, i) => {
-      const x = i * stepX;
-      const y = canvas.height - ((v - min) / range) * (canvas.height - 10) - 5;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+const { RangePicker } = DatePicker;
+const { Option } = Select;
+const { Title, Text } = Typography;
+
+// 模拟数据
+const generateDailyData = (days = 30) => {
+  const data = [];
+  const baseDate = dayjs().subtract(days, 'day');
+  
+  for (let i = 0; i < days; i++) {
+    const date = baseDate.add(i, 'day').format('YYYY-MM-DD');
+    data.push({
+      date,
+      revenue: Math.floor(Math.random() * 50000) + 10000,
+      orders: Math.floor(Math.random() * 200) + 50,
+      customers: Math.floor(Math.random() * 100) + 20,
+      profit: Math.floor(Math.random() * 15000) + 3000,
     });
-    ctx.stroke();
-    // 填充
-    ctx.lineTo(canvas.width, canvas.height);
-    ctx.lineTo(0, canvas.height);
-    ctx.closePath();
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, color + '30');
-    grad.addColorStop(1, color + '05');
-    ctx.fillStyle = grad;
-    ctx.fill();
-  }, [data, color, height]);
-  return <div ref={ref} />;
-}
+  }
+  return data;
+};
+
+const platformData = [
+  { platform: '抖音', orders: 1245, revenue: 125680, percentage: 35 },
+  { platform: '拼多多', orders: 986, revenue: 89420, percentage: 25 },
+  { platform: '闲鱼', orders: 754, revenue: 67850, percentage: 20 },
+  { platform: '快手', orders: 632, revenue: 58790, percentage: 20 },
+];
+
+const alertData = [
+  { id: 1, type: 'warning', title: '库存预警', content: '蓝牙耳机A1库存不足10件', time: '10分钟前' },
+  { id: 2, type: 'error', title: '退款申请', content: '订单#20260422001有退款申请待处理', time: '25分钟前' },
+  { id: 3, type: 'info', title: '订单提醒', content: '有15个订单待发货', time: '1小时前' },
+  { id: 4, type: 'warning', title: '差评预警', content: '商品"智能手表"收到1星评价', time: '2小时前' },
+];
+
+const todoData = [
+  { id: 1, title: '待发货订单', count: 15, icon: <ShoppingCartOutlined />, color: '#165DFF' },
+  { id: 2, title: '待处理退款', count: 3, icon: <DollarOutlined />, color: '#F53F3F' },
+  { id: 3, title: '待回复消息', count: 8, icon: <UserOutlined />, color: '#FF7D00' },
+  { id: 4, title: '库存预警', count: 5, icon: <WarningOutlined />, color: '#722ED1' },
+];
 
 export default function Dashboard() {
-  const [orders] = useState(() => generateOrders(200));
-  const [products] = useState(() => generateProducts(50));
+  const [dailyData, setDailyData] = useState([]);
   const [dateRange, setDateRange] = useState('7d');
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
+  const [platform, setPlatform] = useState('all');
+  const [loading, setLoading] = useState(true);
 
-  // 按平台分组统计
-  const platformStats = useMemo(() => {
-    const stats = {};
-    PLATFORMS.forEach(p => {
-      const pOrders = orders.filter(o => o.platform === p.key);
-      const pProducts = products.filter(pr => pr.platform === p.key);
-      stats[p.key] = {
-        ...p,
-        orderCount: pOrders.length,
-        revenue: pOrders.reduce((s, o) => s + o.amount, 0),
-        profit: pOrders.reduce((s, o) => s + o.profit, 0),
-        productCount: pProducts.length,
-        avgMargin: pProducts.length ? (pProducts.reduce((s, pr) => s + (pr.price - pr.cost) / pr.price, 0) / pProducts.length * 100).toFixed(1) : 0,
-      };
-    });
-    return stats;
-  }, [orders, products]);
+  useEffect(() => {
+    // 模拟加载数据
+    setLoading(true);
+    setTimeout(() => {
+      setDailyData(generateDailyData(dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 1));
+      setLoading(false);
+    }, 500);
+  }, [dateRange]);
 
-  // 核心KPI
-  const kpis = useMemo(() => {
-    const filtered = selectedPlatform === 'all' ? orders : orders.filter(o => o.platform === selectedPlatform);
-    const totalRevenue = filtered.reduce((s, o) => s + o.amount, 0);
-    const totalProfit = filtered.reduce((s, o) => s + o.profit, 0);
-    const pendingShip = filtered.filter(o => o.status === 'paid').length;
-    const pendingRefund = filtered.filter(o => o.status === 'refunding').length;
-    const completedToday = filtered.filter(o => o.status === 'completed' && o.createdAt?.startsWith(new Date().toISOString().slice(0, 10))).length;
-    return {
-      revenue: totalRevenue,
-      profit: totalProfit,
-      margin: totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0,
-      orderCount: filtered.length,
-      avgOrder: filtered.length ? (totalRevenue / filtered.length).toFixed(2) : 0,
-      pendingShip,
-      pendingRefund,
-      completedToday,
-    };
-  }, [orders, selectedPlatform]);
+  // 核心指标
+  const totalRevenue = dailyData.reduce((sum, item) => sum + item.revenue, 0);
+  const totalOrders = dailyData.reduce((sum, item) => sum + item.orders, 0);
+  const totalCustomers = dailyData.reduce((sum, item) => sum + item.customers, 0);
+  const totalProfit = dailyData.reduce((sum, item) => sum + item.profit, 0);
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0;
 
-  // 利润趋势（模拟7天）
-  const profitTrend = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const dayOrders = orders.filter((_, j) => j % 7 === i);
-      return dayOrders.reduce((s, o) => s + o.profit, 0);
-    });
-  }, [orders]);
+  // 趋势图配置
+  const lineConfig = {
+    data: dailyData,
+    xField: 'date',
+    yField: 'revenue',
+    point: {
+      size: 3,
+      shape: 'circle',
+    },
+    smooth: true,
+    line: {
+      color: '#165DFF',
+      lineWidth: 2,
+    },
+    area: {
+      style: {
+        fill: 'l(270) 0:#ffffff 0.5:#e6f4ff 1:#165DFF',
+      },
+    },
+    tooltip: {
+      showMarkers: true,
+    },
+    state: {
+      active: {
+        style: {
+          shadowBlur: 4,
+          stroke: '#0050b3',
+          fill: '#165DFF',
+        },
+      },
+    },
+    interactions: [
+      {
+        type: 'marker-active',
+      },
+    ],
+  };
 
-  // 库存预警商品
-  const stockAlerts = useMemo(() => {
-    return products
-      .filter(p => p.stock < 20)
-      .sort((a, b) => a.stock - b.stock)
-      .slice(0, 8);
-  }, [products]);
+  // 平台占比图配置
+  const pieConfig = {
+    data: platformData,
+    angleField: 'percentage',
+    colorField: 'platform',
+    radius: 0.8,
+    label: {
+      type: 'outer',
+      content: '{name} {percentage}%',
+    },
+    interactions: [
+      {
+        type: 'element-active',
+      },
+    ],
+    color: ['#165DFF', '#00B42A', '#FF7D00', '#722ED1'],
+  };
 
-  // 待办工作流
-  const todoItems = [
-    { id: 1, type: 'ship', label: '待发货订单', count: kpis.pendingShip, color: '#165DFF', icon: '📦', action: '去发货', link: '/orders' },
-    { id: 2, type: 'refund', label: '待处理退款', count: kpis.pendingRefund, color: '#F53F3F', icon: '💰', action: '去处理', link: '/orders' },
-    { id: 3, type: 'stock', label: '库存预警', count: stockAlerts.length, color: '#FF7D00', icon: '⚠️', action: '去补货', link: '/products' },
-    { id: 4, type: 'cs', label: '未回复消息', count: 12, color: '#722ED1', icon: '💬', action: '去回复', link: '/customer-service' },
+  // 订单趋势图配置
+  const columnConfig = {
+    data: dailyData,
+    xField: 'date',
+    yField: 'orders',
+    columnWidthRatio: 0.6,
+    columnStyle: {
+      radius: [4, 4, 0, 0],
+      fill: '#165DFF',
+    },
+    label: {
+      position: 'middle',
+      style: {
+        fill: '#FFFFFF',
+        opacity: 0.6,
+      },
+    },
+    tooltip: {
+      showMarkers: true,
+    },
+    state: {
+      active: {
+        style: {
+          shadowBlur: 4,
+          stroke: '#0050b3',
+          fill: '#165DFF',
+        },
+      },
+    },
+    interactions: [
+      {
+        type: 'element-active',
+      },
+    ],
+  };
+
+  // 表格列配置
+  const platformColumns = [
+    {
+      title: '平台',
+      dataIndex: 'platform',
+      key: 'platform',
+      render: (text) => <Tag color="blue">{text}</Tag>,
+    },
+    {
+      title: '订单数',
+      dataIndex: 'orders',
+      key: 'orders',
+      sorter: (a, b) => a.orders - b.orders,
+    },
+    {
+      title: '营收',
+      dataIndex: 'revenue',
+      key: 'revenue',
+      render: (val) => `¥${val.toLocaleString()}`,
+      sorter: (a, b) => a.revenue - b.revenue,
+    },
+    {
+      title: '占比',
+      dataIndex: 'percentage',
+      key: 'percentage',
+      render: (val) => (
+        <Progress 
+          percent={val} 
+          size="small" 
+          status="active"
+          strokeColor={val > 30 ? '#165DFF' : val > 20 ? '#00B42A' : '#FF7D00'}
+        />
+      ),
+    },
   ];
 
-  // 利润率分布
-  const marginBuckets = useMemo(() => {
-    const buckets = { '<20%': 0, '20-40%': 0, '40-60%': 0, '>60%': 0 };
-    products.forEach(p => {
-      const m = (p.price - p.cost) / p.price * 100;
-      if (m < 20) buckets['<20%']++;
-      else if (m < 40) buckets['20-40%']++;
-      else if (m < 60) buckets['40-60%']++;
-      else buckets['>60%']++;
-    });
-    return buckets;
-  }, [products]);
-
   return (
-    <div className="fade-in">
-      {/* 顶部：平台切换 + 日期筛选 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className={`btn btn-sm ${selectedPlatform === 'all' ? 'btn-primary' : 'btn-default'}`}
-            onClick={() => setSelectedPlatform('all')}
-          >全部平台</button>
-          {PLATFORMS.map(p => (
-            <button
-              key={p.key}
-              className={`btn btn-sm ${selectedPlatform === p.key ? 'btn-primary' : 'btn-default'}`}
-              onClick={() => setSelectedPlatform(p.key)}
-              style={selectedPlatform !== p.key ? { borderColor: p.color, color: p.color } : {}}
-            >{p.icon} {p.name}</button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {['今日', '7天', '30天', '本月'].map(d => (
-            <button
-              key={d}
-              className={`btn btn-sm ${dateRange === d ? 'btn-primary' : 'btn-default'}`}
-              onClick={() => setDateRange(d)}
-            >{d}</button>
-          ))}
-        </div>
+    <div className="dashboard">
+      {/* 顶部操作栏 */}
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Title level={4} style={{ margin: 0 }}>工作台</Title>
+        <Space>
+          <Select 
+            value={dateRange} 
+            onChange={setDateRange}
+            style={{ width: 120 }}
+          >
+            <Option value="1d">今日</Option>
+            <Option value="7d">近7天</Option>
+            <Option value="30d">近30天</Option>
+          </Select>
+          <Select 
+            value={platform} 
+            onChange={setPlatform}
+            style={{ width: 120 }}
+          >
+            <Option value="all">全部平台</Option>
+            <Option value="douyin">抖音</Option>
+            <Option value="pdd">拼多多</Option>
+            <Option value="xianyu">闲鱼</Option>
+            <Option value="kuaishou">快手</Option>
+          </Select>
+          <Button type="primary" icon={<SyncOutlined />}>
+            刷新数据
+          </Button>
+        </Space>
       </div>
 
-      {/* 核心KPI卡片 */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-card-top">
-            <span className="stat-card-title">总营收</span>
-            <div className="stat-card-icon" style={{ background: '#E6F7FF' }}>💰</div>
-          </div>
-          <div className="stat-card-value">¥{kpis.revenue.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</div>
-          <MiniChart data={profitTrend} color="#1890FF" />
-          <div className="stat-card-footer">
-            <span>利润率 <b style={{ color: parseFloat(kpis.margin) > 30 ? 'var(--success)' : 'var(--danger)' }}>{kpis.margin}%</b></span>
-            <span>客单价 ¥{kpis.avgOrder}</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-top">
-            <span className="stat-card-title">净利润</span>
-            <div className="stat-card-icon" style={{ background: '#F6FFED' }}>📈</div>
-          </div>
-          <div className="stat-card-value" style={{ color: 'var(--success)' }}>¥{kpis.profit.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</div>
-          <MiniChart data={profitTrend} color="#52C41A" />
-          <div className="stat-card-footer">
-            <span>订单量 <b>{kpis.orderCount}</b></span>
-            <span>已完成 <b>{kpis.completedToday}</b></span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-top">
-            <span className="stat-card-title">待处理</span>
-            <div className="stat-card-icon" style={{ background: '#FFF7E6' }}>⚡</div>
-          </div>
-          <div className="stat-card-value" style={{ color: kpis.pendingShip > 0 ? '#FF7D00' : 'var(--success)' }}>
-            {kpis.pendingShip + kpis.pendingRefund}
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-              <span style={{ color: 'var(--text-3)' }}>待发货</span>
-              <span style={{ color: '#165DFF', fontWeight: 600 }}>{kpis.pendingShip}</span>
+      {/* 核心指标卡片 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card loading={loading}>
+            <Statistic
+              title="总营收"
+              value={totalRevenue}
+              precision={2}
+              valueStyle={{ color: '#165DFF' }}
+              prefix={<DollarOutlined />}
+              suffix="元"
+            />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">日均: ¥{Math.round(totalRevenue / (dailyData.length || 1)).toLocaleString()}</Text>
+              <Tag color="green" style={{ marginLeft: 8 }}>
+                <ArrowUpOutlined /> 12.5%
+              </Tag>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-              <span style={{ color: 'var(--text-3)' }}>待退款</span>
-              <span style={{ color: '#F53F3F', fontWeight: 600 }}>{kpis.pendingRefund}</span>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card loading={loading}>
+            <Statistic
+              title="净利润"
+              value={totalProfit}
+              precision={2}
+              valueStyle={{ color: '#00B42A' }}
+              prefix={<ArrowUpOutlined />}
+              suffix="元"
+            />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">利润率: {profitMargin}%</Text>
+              <Tag color="green" style={{ marginLeft: 8 }}>
+                <ArrowUpOutlined /> 8.2%
+              </Tag>
             </div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-top">
-            <span className="stat-card-title">在售商品</span>
-            <div className="stat-card-icon" style={{ background: '#F9F0FF' }}>🏷️</div>
-          </div>
-          <div className="stat-card-value">{products.filter(p => p.status === 'active').length}</div>
-          <div style={{ marginTop: 12 }}>
-            {Object.entries(marginBuckets).map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ width: 50, fontSize: 12, color: 'var(--text-3)' }}>{k}</span>
-                <div className="progress-bar" style={{ flex: 1 }}>
-                  <div className="progress-bar-fill" style={{ width: `${(v / products.length) * 100}%`, background: k === '>60%' ? '#52C41A' : k === '40-60%' ? '#1890FF' : '#FF7D00' }} />
-                </div>
-                <span style={{ fontSize: 12, color: 'var(--text-3)', width: 20 }}>{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card loading={loading}>
+            <Statistic
+              title="订单数"
+              value={totalOrders}
+              valueStyle={{ color: '#FF7D00' }}
+              prefix={<ShoppingCartOutlined />}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">客单价: ¥{avgOrderValue.toFixed(2)}</Text>
+              <Tag color="red" style={{ marginLeft: 8 }}>
+                <ArrowDownOutlined /> 3.1%
+              </Tag>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card loading={loading}>
+            <Statistic
+              title="新增客户"
+              value={totalCustomers}
+              valueStyle={{ color: '#722ED1' }}
+              prefix={<UserOutlined />}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">转化率: 4.2%</Text>
+              <Tag color="green" style={{ marginLeft: 8 }}>
+                <ArrowUpOutlined /> 5.7%
+              </Tag>
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 中间：待办工作流 + 平台对比 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-        {/* 待办工作流 */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">📋 待办工作台</span>
-            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>需要立即处理的事项</span>
-          </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            {todoItems.map((item, i) => (
-              <div key={item.id} style={{
-                display: 'flex', alignItems: 'center', padding: '14px 16px',
-                borderBottom: i < todoItems.length - 1 ? '1px solid var(--border)' : 'none',
-                opacity: item.count > 0 ? 1 : 0.5,
-              }}>
-                <span style={{ fontSize: 20, marginRight: 12 }}>{item.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500 }}>{item.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                    {item.count > 0 ? `有 ${item.count} 条需要处理` : '暂无待处理'}
-                  </div>
-                </div>
-                <span style={{ fontSize: 22, fontWeight: 700, color: item.color, marginRight: 16 }}>{item.count}</span>
-                {item.count > 0 && (
-                  <a href={item.link} style={{
-                    padding: '4px 12px', borderRadius: 4, fontSize: 12,
-                    background: item.color + '10', color: item.color, textDecoration: 'none',
-                    fontWeight: 500,
-                  }}>{item.action}</a>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* 图表区域 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={16}>
+          <Card title="营收趋势" loading={loading}>
+            <Line {...lineConfig} height={300} />
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="平台占比" loading={loading}>
+            <Pie {...pieConfig} height={300} />
+          </Card>
+        </Col>
+      </Row>
 
-        {/* 平台对比 */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">📊 平台经营对比</span>
-          </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>平台</th><th>订单</th><th>营收</th><th>利润</th><th>商品</th><th>利润率</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.values(platformStats).map(ps => (
-                  <tr key={ps.key}>
-                    <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{ps.icon} {ps.name}</span></td>
-                    <td style={{ fontWeight: 600 }}>{ps.orderCount}</td>
-                    <td>¥{ps.revenue.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}</td>
-                    <td style={{ color: 'var(--success)', fontWeight: 600 }}>¥{ps.profit.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}</td>
-                    <td>{ps.productCount}</td>
-                    <td>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 500,
-                        background: parseFloat(ps.avgMargin) > 40 ? '#F6FFED' : '#FFF7E6',
-                        color: parseFloat(ps.avgMargin) > 40 ? '#52C41A' : '#FA8C16',
-                      }}>{ps.avgMargin}%</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      {/* 下方区域 */}
+      <Row gutter={[16, 16]}>
+        {/* 左侧：待办事项和预警 */}
+        <Col xs={24} lg={8}>
+          <Card title="待办事项" style={{ marginBottom: 16 }}>
+            <List
+              itemLayout="horizontal"
+              dataSource={todoData}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar 
+                        icon={item.icon} 
+                        style={{ backgroundColor: item.color }} 
+                      />
+                    }
+                    title={item.title}
+                    description={`有 ${item.count} 条需要处理`}
+                  />
+                  <Button type="link">去处理</Button>
+                </List.Item>
+              )}
+            />
+          </Card>
+          
+          <Card title="预警信息">
+            <List
+              itemLayout="horizontal"
+              dataSource={alertData}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <ExclamationCircleOutlined 
+                        style={{ 
+                          color: item.type === 'error' ? '#F53F3F' : 
+                                 item.type === 'warning' ? '#FF7D00' : '#165DFF',
+                          fontSize: 20,
+                        }} 
+                      />
+                    }
+                    title={item.title}
+                    description={item.content}
+                  />
+                  <Text type="secondary">{item.time}</Text>
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+
+        {/* 右侧：订单趋势和平台对比 */}
+        <Col xs={24} lg={16}>
+          <Card title="订单趋势" style={{ marginBottom: 16 }} loading={loading}>
+            <Column {...columnConfig} height={200} />
+          </Card>
+          
+          <Card title="平台经营对比">
+            <Table
+              columns={platformColumns}
+              dataSource={platformData}
+              pagination={false}
+              size="small"
+              rowKey="platform"
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {/* 底部：库存预警 */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">⚠️ 库存预警 ({stockAlerts.length}件)</span>
-          <a href="/products" style={{ fontSize: 13, color: 'var(--primary)', textDecoration: 'none' }}>查看全部 →</a>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr><th>商品</th><th>平台</th><th>库存</th><th>日均销量</th><th>预计可售天数</th><th>建议操作</th></tr>
-            </thead>
-            <tbody>
-              {stockAlerts.map(p => {
-                const dailySales = Math.ceil(p.sales / 30);
-                const daysLeft = dailySales > 0 ? Math.floor(p.stock / dailySales) : 999;
-                return (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 500 }}>{p.name}</td>
-                    <td>{PLATFORMS.find(x => x.key === p.platform)?.icon}</td>
-                    <td style={{ color: p.stock < 5 ? 'var(--danger)' : '#FF7D00', fontWeight: 600 }}>{p.stock}</td>
-                    <td>{dailySales}</td>
-                    <td>
-                      <span style={{ color: daysLeft < 3 ? 'var(--danger)' : daysLeft < 7 ? '#FF7D00' : 'var(--success)', fontWeight: 600 }}>
-                        {daysLeft}天
-                      </span>
-                    </td>
-                    <td>
-                      <button className="btn btn-text btn-sm" style={{ color: 'var(--primary)' }}>
-                        {daysLeft < 3 ? '🚨 立即补货' : daysLeft < 7 ? '📦 建议补货' : '✅ 关注'}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {stockAlerts.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--success)' }}>✅ 所有商品库存充足</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Row style={{ marginTop: 16 }}>
+        <Col span={24}>
+          <Card 
+            title={
+              <Space>
+                <WarningOutlined style={{ color: '#FF7D00' }} />
+                <span>库存预警</span>
+                <Tag color="orange">5件</Tag>
+              </Space>
+            }
+            extra={<Button type="link">查看全部</Button>}
+          >
+            <Table
+              columns={[
+                {
+                  title: '商品',
+                  dataIndex: 'name',
+                  key: 'name',
+                },
+                {
+                  title: '平台',
+                  dataIndex: 'platform',
+                  key: 'platform',
+                  render: (text) => <Tag>{text}</Tag>,
+                },
+                {
+                  title: '库存',
+                  dataIndex: 'stock',
+                  key: 'stock',
+                  render: (val) => (
+                    <Text type={val < 5 ? 'danger' : 'warning'}>{val}</Text>
+                  ),
+                },
+                {
+                  title: '日均销量',
+                  dataIndex: 'dailySales',
+                  key: 'dailySales',
+                },
+                {
+                  title: '预计可售天数',
+                  dataIndex: 'daysLeft',
+                  key: 'daysLeft',
+                  render: (val) => (
+                    <Text type={val < 3 ? 'danger' : val < 7 ? 'warning' : 'success'}>
+                      {val}天
+                    </Text>
+                  ),
+                },
+                {
+                  title: '操作',
+                  key: 'action',
+                  render: () => (
+                    <Button type="link" size="small">
+                      立即补货
+                    </Button>
+                  ),
+                },
+              ]}
+              dataSource={[
+                { key: '1', name: '蓝牙耳机A1', platform: '抖音', stock: 8, dailySales: 2, daysLeft: 4 },
+                { key: '2', name: '智能手表S2', platform: '拼多多', stock: 3, dailySales: 1, daysLeft: 3 },
+                { key: '3', name: '充电宝10000mAh', platform: '闲鱼', stock: 12, dailySales: 3, daysLeft: 4 },
+                { key: '4', name: '手机壳透明款', platform: '快手', stock: 5, dailySales: 2, daysLeft: 2 },
+                { key: '5', name: '数据线快充', platform: '抖音', stock: 2, dailySales: 1, daysLeft: 2 },
+              ]}
+              pagination={false}
+              size="small"
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }
