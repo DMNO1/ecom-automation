@@ -153,6 +153,11 @@ services:
     container_name: ecom-n8n
     ports:
       - "5678:5678"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
@@ -173,6 +178,11 @@ services:
     container_name: ecom-metabase
     ports:
       - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1G'
     environment:
       - MB_DB_TYPE=postgres
       - MB_DB_DBNAME=ecom_automation
