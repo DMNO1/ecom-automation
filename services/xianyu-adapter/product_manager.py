@@ -188,14 +188,26 @@ class ProductManager:
     async def batch_update_prices(self, updates: Dict[str, float]) -> Dict[str, bool]:
         """批量更新价格"""
         results = {}
+        chunk_size = 5
+        items = list(updates.items())
         
-        for product_id, new_price in updates.items():
-            success = await self.update_product(product_id, {"price": new_price})
-            results[product_id] = success
+        for i in range(0, len(items), chunk_size):
+            chunk = items[i:i + chunk_size]
+            tasks = [self.update_product(pid, {"price": price}) for pid, price in chunk]
             
-            # 避免请求过快
-            await asyncio.sleep(0.5)
-        
+            successes = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for (pid, _), success in zip(chunk, successes):
+                if isinstance(success, Exception):
+                    logger.error(f"更新商品失败 {pid}: {success}")
+                    results[pid] = False
+                else:
+                    results[pid] = success
+
+            if i + chunk_size < len(items):
+                # 避免请求过快
+                await asyncio.sleep(0.5)
+
         return results
     
     async def get_product_statistics(self) -> Dict[str, Any]:
