@@ -10,8 +10,8 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=ecommerce
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres_password
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - N8N_BASE_URL=http://n8n:5678
@@ -34,8 +34,8 @@ services:
     container_name: hermes-postgres
     environment:
       - POSTGRES_DB=ecommerce
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres_password
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
