@@ -4,8 +4,9 @@
 import asyncio
 import logging
 from typing import Optional, Dict, Any, List
-from pathlib import Path
 import json
+import aiofiles
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -367,8 +368,9 @@ class PlaywrightBot:
             
             storage_state = await self.context.storage_state()
             
-            with open(path, "w") as f:
-                json.dump(storage_state, f)
+            content = await asyncio.to_thread(json.dumps, storage_state)
+            async with aiofiles.open(path, "w") as f:
+                await f.write(content)
             
             logger.info(f"保存存储状态成功: {path}")
             return True
@@ -383,8 +385,12 @@ class PlaywrightBot:
             if not self.is_running or not self.context:
                 raise Exception("浏览器未启动")
             
-            with open(path, "r") as f:
-                storage_state = json.load(f)
+            if not os.path.exists(path):
+                return False
+
+            async with aiofiles.open(path, "r") as f:
+                content = await f.read()
+                storage_state = await asyncio.to_thread(json.loads, content)
             
             await self.context.add_cookies(storage_state.get("cookies", []))
             logger.info(f"加载存储状态成功: {path}")
