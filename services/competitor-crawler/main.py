@@ -1,13 +1,12 @@
 """
 竞品爬虫服务主入口
 """
-import asyncio
 import signal
 import sys
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from loguru import logger
@@ -15,8 +14,7 @@ from loguru import logger
 from storage import Platform, get_storage, close_storage
 from scheduler import (
     get_scheduler, start_scheduler, stop_scheduler,
-    create_price_check_task, create_title_check_task, create_full_check_task,
-    TaskScheduler, TaskType, ScheduledTask
+    TaskType, ScheduledTask
 )
 from crawler import crawl_product, batch_crawl
 from analyzer import DataAnalyzer
@@ -78,7 +76,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Competitor Crawler Service...")
     
     # 初始化存储
-    storage = await get_storage()
+    await get_storage()
     logger.info("Storage initialized")
     
     # 启动调度器
