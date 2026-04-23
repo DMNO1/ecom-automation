@@ -101,6 +101,34 @@ class Storage:
         except Exception as e:
             logger.error(f"Failed to save snapshot: {e}")
             raise
+
+    async def save_snapshots(self, snapshots: List[ProductSnapshot]) -> List[str]:
+        """批量保存商品快照"""
+        if not snapshots:
+            return []
+
+        try:
+            # 批量保存到MongoDB
+            dicts = [s.dict() for s in snapshots]
+            result = await self.db.snapshots.insert_many(dicts)
+
+            # 批量且并发保存原始数据到文件系统
+            async def save_file(snapshot: ProductSnapshot):
+                file_path = self.data_dir / snapshot.platform.value / snapshot.product_id
+                file_path.mkdir(parents=True, exist_ok=True)
+
+                filename = f"{snapshot.crawl_time.strftime('%Y%m%d_%H%M%S')}.json"
+                async with aiofiles.open(file_path / filename, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(snapshot.dict(), default=str, ensure_ascii=False, indent=2))
+
+            await asyncio.gather(*(save_file(s) for s in snapshots))
+
+            logger.info(f"Saved {len(snapshots)} snapshots in bulk")
+            return [str(id_) for id_ in result.inserted_ids]
+
+        except Exception as e:
+            logger.error(f"Failed to save snapshots in bulk: {e}")
+            raise
     
     async def get_latest_snapshot(self, platform: Platform, product_id: str) -> Optional[ProductSnapshot]:
         """获取最新快照"""
