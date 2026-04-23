@@ -1,7 +1,6 @@
 """
 竞品爬虫服务主入口
 """
-import asyncio
 import signal
 import sys
 from contextlib import asynccontextmanager
