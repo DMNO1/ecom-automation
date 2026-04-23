@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-PROJECT_ROOT = Path.home() / "ecom-automation"
+PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", Path.cwd()))
 
 class TestRunner:
     def __init__(self):
