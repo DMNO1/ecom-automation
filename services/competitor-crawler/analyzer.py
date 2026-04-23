@@ -2,7 +2,6 @@
 数据分析模块
 价格趋势、标题变化、促销监控
 """
-import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
