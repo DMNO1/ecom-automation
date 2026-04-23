@@ -12,7 +12,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
-from pydantic import BaseModel, Field
 
 from storage import Platform, Storage, get_storage
 from crawler import crawl_product, CrawlResult
