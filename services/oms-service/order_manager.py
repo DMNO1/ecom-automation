@@ -12,10 +12,9 @@ class OrderManager:
         self.orders: Dict[str, Order] = {}
         self._init_sample_data()
     
-    def _init_sample_data(self):
-        """初始化示例数据"""
-        sample_orders = [
-            Order(
+
+    def _create_sample_order_1(self) -> Order:
+        return Order(
                 order_id="ORD-2024-001",
                 platform=Platform.DOUYIN,
                 platform_order_id="DY123456789",
@@ -58,8 +57,10 @@ class OrderManager:
                 paid_at=datetime.now() - timedelta(hours=2),
                 tags=["VIP客户", "加急"],
                 risk_level=RiskLevel.LOW
-            ),
-            Order(
+            )
+
+    def _create_sample_order_2(self) -> Order:
+        return Order(
                 order_id="ORD-2024-002",
                 platform=Platform.KUAISHOU,
                 platform_order_id="KS987654321",
@@ -90,8 +91,10 @@ class OrderManager:
                 paid_at=datetime.now() - timedelta(minutes=30),
                 tags=["新客户"],
                 risk_level=RiskLevel.LOW
-            ),
-            Order(
+            )
+
+    def _create_sample_order_3(self) -> Order:
+        return Order(
                 order_id="ORD-2024-003",
                 platform=Platform.PINDUODUO,
                 platform_order_id="PDD111222333",
@@ -124,6 +127,13 @@ class OrderManager:
                 risk_level=RiskLevel.MEDIUM,
                 remarks="客户反映耳机有杂音"
             )
+
+    def _init_sample_data(self):
+        """初始化示例数据"""
+        sample_orders = [
+            self._create_sample_order_1(),
+            self._create_sample_order_2(),
+            self._create_sample_order_3()
         ]
         
         for order in sample_orders:
