@@ -12,7 +12,7 @@ import jieba
 import jieba.analyse
 from loguru import logger
 
-from storage import Storage, ProductSnapshot, Platform
+from storage import Storage, Platform
 
 
 @dataclass
