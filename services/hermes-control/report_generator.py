@@ -2,6 +2,7 @@
 报表生成器 - 生成日报/周报
 """
 import asyncio
+import aiofiles
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
@@ -146,8 +147,8 @@ class ReportGenerator:
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     report_path = self.output_dir / f"abnormal_report_{timestamp}.md"
                     
-                    with open(report_path, "w", encoding="utf-8") as f:
-                        f.write(report_content)
+                    async with aiofiles.open(report_path, "w", encoding="utf-8") as f:
+                        await f.write(report_content)
                     
                     return {
                         "status": "success",
@@ -186,8 +187,8 @@ class ReportGenerator:
         filename = f"{report_type}_report_{date}_{timestamp}.json"
         filepath = self.output_dir / filename
         
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        async with aiofiles.open(filepath, "w", encoding="utf-8") as f:
+            await f.write(json.dumps(data, ensure_ascii=False, indent=2))
         
         logger.info(f"报表已保存: {filepath}")
         return filepath
@@ -239,8 +240,9 @@ class ReportGenerator:
                 continue
             
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+                    content = await f.read()
+                    data = json.loads(content)
                 
                 reports.append({
                     "filename": file_path.name,
