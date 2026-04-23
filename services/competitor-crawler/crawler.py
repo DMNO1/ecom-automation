@@ -5,20 +5,17 @@
 import asyncio
 import hashlib
 import random
-import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from urllib.parse import urlparse, parse_qs
 
 import httpx
 from playwright.async_api import async_playwright, Browser, Page
-from bs4 import BeautifulSoup
 from PIL import Image
 import imagehash
 from loguru import logger
 from fake_useragent import UserAgent
-from retry import retry
 
 from storage import Platform, ProductSnapshot
 
@@ -122,7 +119,7 @@ class BaseCrawler(ABC):
                     img_element = await self.page.query_selector(selector)
                     if img_element:
                         break
-                except:
+                except Exception:
                     continue
             
             if not img_element:
@@ -180,7 +177,7 @@ class BaseCrawler(ABC):
                     text = await element.text_content()
                     if text and text.strip():
                         tags.append(text.strip())
-            except:
+            except Exception:
                 continue
         
         return list(set(tags))
@@ -286,7 +283,7 @@ class DouyinCrawler(BaseCrawler):
                     text = await element.text_content()
                     if text and len(text.strip()) > 5:
                         comments.append(text.strip())
-        except:
+        except Exception:
             pass
         return comments
     
@@ -358,7 +355,7 @@ class KuaishouCrawler(BaseCrawler):
             
         except Exception as e:
             logger.error(f"Failed to crawl Kuaishou product: {e}")
-        return CrawlResult(success=False, error=str(e))
+            return CrawlResult(success=False, error=str(e))
     
     def _extract_product_id(self, url: str) -> str:
         """从URL提取商品ID"""
@@ -379,7 +376,7 @@ class KuaishouCrawler(BaseCrawler):
                     text = await element.text_content()
                     if text and len(text.strip()) > 5:
                         comments.append(text.strip())
-        except:
+        except Exception:
             pass
         return comments
 
@@ -470,7 +467,7 @@ class PddCrawler(BaseCrawler):
                     text = await element.text_content()
                     if text and len(text.strip()) > 5:
                         comments.append(text.strip())
-        except:
+        except Exception:
             pass
         return comments
     
@@ -567,7 +564,7 @@ class XianyuCrawler(BaseCrawler):
                     text = await element.text_content()
                     if text and len(text.strip()) > 5:
                         comments.append(text.strip())
-        except:
+        except Exception:
             pass
         return comments
 
