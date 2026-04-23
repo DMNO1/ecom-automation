@@ -1,10 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import os
 from datetime import datetime
-from typing import List, Optional
 
-from models import Order, OrderStatus, Platform, InventoryItem, Ticket, TicketStatus
 from order_manager import OrderManager
 from inventory_manager import InventoryManager
 from ticket_manager import TicketManager
@@ -17,9 +16,11 @@ app = FastAPI(
 )
 
 # 配置CORS
+cors_origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
