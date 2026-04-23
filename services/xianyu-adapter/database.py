@@ -3,7 +3,7 @@
 """
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, LiteralString
 from dataclasses import dataclass, asdict
 import json
 import sqlite3
@@ -105,7 +105,7 @@ class Database:
             await self.connection.close()
             logger.info("数据库连接已关闭")
     
-    async def execute(self, query: str, params: tuple = None) -> aiosqlite.Cursor:
+    async def execute(self, query: LiteralString, params: tuple = None) -> aiosqlite.Cursor:
         """执行SQL语句"""
         if not self.connection:
             await self.connect()
@@ -118,7 +118,7 @@ class Database:
             logger.error(f"执行SQL失败: {e}")
             raise
     
-    async def fetch_one(self, query: str, params: tuple = None) -> Optional[Dict[str, Any]]:
+    async def fetch_one(self, query: LiteralString, params: tuple = None) -> Optional[Dict[str, Any]]:
         """查询单条记录"""
         if not self.connection:
             await self.connect()
@@ -135,7 +135,7 @@ class Database:
             logger.error(f"查询失败: {e}")
             raise
     
-    async def fetch_all(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
+    async def fetch_all(self, query: LiteralString, params: tuple = None) -> List[Dict[str, Any]]:
         """查询多条记录"""
         if not self.connection:
             await self.connect()
