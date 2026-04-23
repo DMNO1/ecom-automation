@@ -3,6 +3,8 @@
 支持定时轮询（15分钟价格/30分钟标题）
 """
 import asyncio
+import os
+import httpx
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
@@ -413,6 +415,28 @@ class TaskScheduler:
                 self.stats["total_runs"] += 1
                 self.stats["last_run_time"] = datetime.now()
     
+    async def _send_notification(self, message: str):
+        """发送通知"""
+        webhook_enabled = os.getenv("NOTIFICATION_WEBHOOK_ENABLED", "false").lower() == "true"
+        webhook_url = os.getenv("NOTIFICATION_WEBHOOK_URL")
+
+        if webhook_enabled and webhook_url:
+            try:
+                async with httpx.AsyncClient() as client:
+                    payload = {
+                        "msgtype": "text",
+                        "text": {
+                            "content": message
+                        }
+                    }
+                    response = await client.post(webhook_url, json=payload, timeout=10.0)
+                    response.raise_for_status()
+                    logger.info("Notification sent successfully")
+            except Exception as e:
+                logger.error(f"Failed to send notification: {e}")
+        else:
+            logger.debug("Webhook notification is disabled or URL is not set")
+
     async def _trigger_price_alert(self, task: ScheduledTask, old_price: float, new_price: float):
         """触发价格告警"""
         # 这里可以实现通知逻辑（邮件、短信、webhook等）
@@ -429,8 +453,7 @@ class TaskScheduler:
         
         logger.warning(alert_message)
         
-        # TODO: 实现实际的通知发送
-        # await send_notification(alert_message)
+        await self._send_notification(alert_message)
     
     async def _trigger_title_alert(self, task: ScheduledTask, old_title: str, new_title: str):
         """触发标题变化告警"""
@@ -444,8 +467,7 @@ class TaskScheduler:
         
         logger.warning(alert_message)
         
-        # TODO: 实现实际的通知发送
-        # await send_notification(alert_message)
+        await self._send_notification(alert_message)
     
     async def _update_stats(self):
         """更新统计信息"""
