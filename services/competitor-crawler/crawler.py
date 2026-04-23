@@ -23,6 +23,15 @@ from retry import retry
 from storage import Platform, ProductSnapshot
 
 
+class CrawlerEngine:
+    def __init__(self):
+        self._browsers = {}
+
+    async def initialize(self):
+        # 待实现浏览器初始化
+        pass
+
+
 @dataclass
 class CrawlResult:
     """爬取结果"""
