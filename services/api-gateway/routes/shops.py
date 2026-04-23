@@ -37,7 +37,7 @@ async def create_shop(shop: ShopCreate):
     """创建店铺"""
     new_shop = {
         "id": f"shop_{len(shops_db) + 1}",
-        **shop.dict(),
+        **shop.model_dump(),
         "auth_status": "pending",
         "created_at": datetime.now(),
         "updated_at": datetime.now()
