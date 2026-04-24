@@ -58,7 +58,11 @@ async def health_check():
         "version": "1.0.0"
     }
 
+# 导入 auth 路由
+from routes.auth import oauth
+
 # 注册路由
+app.include_router(oauth.router, prefix="/api/auth", tags=["统一鉴权管理"])
 app.include_router(shops.router, prefix="/api/shops", tags=["店铺管理"])
 app.include_router(products.router, prefix="/api/products", tags=["商品管理"])
 app.include_router(orders.router, prefix="/api/orders", tags=["订单管理"])

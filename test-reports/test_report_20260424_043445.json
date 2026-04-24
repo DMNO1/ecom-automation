@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-04-24T04:34:39.613189",
+  "tests": {
+    "code_quality": {
+      "status": "PASS",
+      "message": "检查93个文件，全部通过",
+      "details": []
+    },
+    "imports": {
+      "status": "PASS",
+      "message": "核心依赖全部可用",
+      "details": []
+    },
+    "api_structure": {
+      "status": "PASS",
+      "message": "所有服务路由结构完整",
+      "details": []
+    },
+    "database_schema": {
+      "status": "PASS",
+      "message": "7张核心表全部定义",
+      "details": []
+    },
+    "docker_config": {
+      "status": "PASS",
+      "message": "Docker配置完整",
+      "details": []
+    },
+    "documentation": {
+      "status": "WARNING",
+      "message": "1个文档缺失",
+      "details": [
+        "api-gateway: 缺少README.md"
+      ]
+    },
+    "security": {
+      "status": "PASS",
+      "message": "未发现明显安全问题",
+      "details": []
+    }
+  },
+  "summary": {
+    "total": 7,
+    "passed": 6,
+    "failed": 0,
+    "warnings": 1
+  }
+}
