@@ -79,6 +79,34 @@ async def create_order(order_data: dict):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"创建订单失败: {str(e)}")
 
+from providers import get_platform_provider
+
+@router.post("/sync/{platform}/{shop_id}", summary="手动触发订单同步 (Phase 1 Additive Mock)")
+async def sync_platform_orders(platform: str, shop_id: str):
+    """
+    手动触发拉取平台订单（当前使用 Mock Provider）.
+    该接口使用 unified_models.MultiPlatformOrder 进行内部扭转.
+    """
+    try:
+        provider = get_platform_provider(platform)
+        from datetime import datetime, timedelta
+        end_time = datetime.now()
+        start_time = end_time - timedelta(days=1)
+        
+        # 1. 调用 Provider 拉取统一模型订单
+        orders = await provider.pull_orders(shop_id, start_time, end_time)
+        
+        # TODO: 2. 存入数据库 unified_models.MultiPlatformOrder (使用真实DB依赖)
+        # 暂时返回 Mock 结果展示
+        
+        return {
+            "status": "success",
+            "message": f"Successfully pulled {len(orders)} mock orders for {platform}.",
+            "mock_orders": [order.model_dump() for order in orders]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.put("/{order_id}/status", response_model=Order, summary="更新订单状态")
 async def update_order_status(order_id: str, status: OrderStatus):

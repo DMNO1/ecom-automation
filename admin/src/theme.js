@@ -1,0 +1,101 @@
+/**
+ * ecom-automation Admin - Design System
+ * 基于 ui-ux-pro-max 生成的美学规范
+ */
+
+export const theme = {
+  token: {
+    colorPrimary: '#1677ff',
+    colorPrimaryHover: '#4096ff',
+    colorPrimaryActive: '#0958d9',
+    colorInfo: '#1677ff',
+    colorSuccess: '#52c41a',
+    colorWarning: '#faad14',
+    colorError: '#ff4d4f',
+    colorBgContainer: '#ffffff',
+    colorBgElevated: '#ffffff',
+    colorBgLayout: '#f0f2f5',
+    colorBorder: '#d9d9d9',
+    colorText: '#262626',
+    colorTextSecondary: '#595959',
+    colorTextTertiary: '#8c8c8c',
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+    fontSize: 14,
+    fontSizeLG: 16,
+    fontSizeSM: 12,
+    lineHeight: 1.5,
+    lineHeightLG: 1.6,
+    lineHeightSM: 1.4,
+    borderRadius: 4,
+    borderRadiusSM: 2,
+    borderRadiusLG: 8,
+    borderRadiusXL: 12,
+    marginXS: 4,
+    marginSM: 8,
+    marginMD: 12,
+    marginLG: 16,
+    marginXL: 24,
+    marginXXL: 32,
+    marginXXXL: 48,
+    paddingXS: 4,
+    paddingSM: 8,
+    paddingMD: 12,
+    paddingLG: 16,
+    paddingXL: 24,
+    paddingXXL: 32,
+    paddingXXXL: 48,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+    boxShadowSM: '0 2px 8px rgba(0, 0, 0, 0.06)',
+    boxShadowMD: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    boxShadowLG: '0 8px 24px rgba(0, 0, 0, 0.12)',
+    motionBase: 0.2,
+    motionMid: 0.24,
+    motionSlow: 0.4,
+    motionEaseInOut: 'cubic-bezier(0.35, 0, 0.25, 1)',
+  },
+  components: {
+    Button: {
+      algorithm: true,
+      borderRadius: 4,
+      primaryColor: '#1677ff',
+      primaryColorHover: '#4096ff',
+      primaryColorActive: '#0958d9',
+    },
+    Menu: {
+      darkColorBg: '#001529',
+      darkColorItemBg: '#00000070',
+      darkColorItemSelectedBg: '#1677ff33',
+      darkColorItemHoverBg: '#1677ff22',
+    },
+    Table: {
+      headerBg: '#fafafa',
+      headerColor: '#595959',
+      rowHoverBg: '#f5f5f5',
+    },
+    Card: {
+      radius: 8,
+      borderRadius: 8,
+      boxShadowTertiary: '0 2px 8px rgba(0, 0, 0, 0.06)',
+    },
+    Input: {
+      activeBorderColor: '#1677ff',
+      hoverBorderColor: '#4096ff',
+      borderRadius: 4,
+    },
+    Modal: {
+      contentBg: '#ffffff',
+      headerBg: '#ffffff',
+      borderRadius: 8,
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+    },
+    Layout: {
+      siderBg: '#001529',
+      headerBg: '#ffffff',
+      bodyBg: '#f0f2f5',
+      footerBg: '#f0f2f5',
+    },
+  },
+};
+
+export default theme;

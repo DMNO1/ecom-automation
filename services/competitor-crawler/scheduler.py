@@ -3,19 +3,17 @@
 支持定时轮询（15分钟价格/30分钟标题）
 """
 import asyncio
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable, Any
+from datetime import datetime
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
-from pydantic import BaseModel, Field
 
 from storage import Platform, Storage, get_storage
-from crawler import crawl_product, CrawlResult
+from crawler import crawl_product
 from analyzer import DataAnalyzer
 
 

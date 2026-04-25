@@ -1,13 +1,47 @@
 import os
+import time
+import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from typing import Optional, Any, Union
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from loguru import logger
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from models import DouyinConfig, ApiResponse
 from auth import init_auth_manager
 from douyin_client import init_douyin_client
 from routes import products, orders, inventory, aftersales, logistics
+
+
+class DouyinAPIError(HTTPException):
+    def __init__(self, code: int = 500, message: str = "Internal server error", detail: Optional[Any] = None):
+        super().__init__(status_code=code, detail=detail)
+        self.api_message = message
+
+
+class AuthError(DouyinAPIError):
+    def __init__(self, message: str = "Authentication failed", detail: Optional[Any] = None):
+        super().__init__(code=401, message=message, detail=detail)
+
+
+class ValidationError(DouyinAPIError):
+    def __init__(self, message: str = "Validation failed", detail: Optional[Any] = None):
+        super().__init__(code=422, message=message, detail=detail)
+
+
+class ErrorResponse(BaseModel):
+    code: int
+    message: str
+    data: Optional[Any] = None
+
+
+def error_response(code: int, message: str, data: Optional[Any] = None) -> JSONResponse:
+    return JSONResponse(
+        status_code=200,
+        content=ErrorResponse(code=code, message=message, data=data).model_dump()
+    )
 
 # 加载环境变量
 load_dotenv()
@@ -65,6 +99,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# 请求日志中间件
+@app.middleware("http")
+async def logging_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    start_time = time.perf_counter()
+    
+    response = await call_next(request)
+    
+    process_time = (time.perf_counter() - start_time) * 1000
+    
+    logger.info(
+        "request | request_id={request_id} | method={method} | path={path} | status_code={status_code} | duration={duration:.2f}ms",
+        request_id=request_id,
+        method=request.method,
+        path=request.url.path,
+        status_code=response.status_code,
+        duration=process_time
+    )
+    
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+# 全局异常处理器
+@app.exception_handler(DouyinAPIError)
+async def douyin_api_error_handler(request: Request, exc: DouyinAPIError):
+    return error_response(exc.status_code, exc.api_message)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return error_response(exc.status_code, exc.detail or "HTTP error")
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled exception: {exc}", exc=exc)
+    return error_response(500, "Internal server error")
 
 # 注册路由
 app.include_router(products.router, prefix="/api")

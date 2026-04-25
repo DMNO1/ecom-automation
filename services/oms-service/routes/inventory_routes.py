@@ -70,6 +70,31 @@ async def create_inventory_item(item_data: dict):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"创建库存项目失败: {str(e)}")
 
+from providers import get_platform_provider
+
+@router.post("/sync/{platform}/{shop_id}", summary="手动触发商品SKU同步 (Phase 1 Additive Mock)")
+async def sync_platform_products(platform: str, shop_id: str):
+    """
+    手动触发拉取平台商品（当前使用 Mock Provider）.
+    该接口使用 unified_models.MultiPlatformSKU 进行内部扭转.
+    """
+    try:
+        provider = get_platform_provider(platform)
+        
+        # 1. 调用 Provider 拉取统一模型 SKU
+        skus = await provider.pull_products(shop_id)
+        
+        # TODO: 2. 存入数据库 unified_models.MultiPlatformSKU (使用真实DB依赖)
+        # 暂时返回 Mock 结果展示
+        
+        return {
+            "status": "success",
+            "message": f"Successfully pulled {len(skus)} mock SKUs for {platform}.",
+            "mock_skus": [sku.model_dump() for sku in skus]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/{sku_id}", summary="删除库存项目")
 async def delete_inventory_item(sku_id: str):
