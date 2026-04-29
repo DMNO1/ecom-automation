@@ -1,0 +1,4 @@
+last_optimized=Products
+timestamp=2026-04-29
+cycle_order=Dashboard,Orders,CustomerService,Products,Competitors,Settings
+next=Competitors
