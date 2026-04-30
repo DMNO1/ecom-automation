@@ -1,7 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from models import InventoryItem, Platform, RiskLevel
 from inventory_manager import InventoryManager
+from database import get_db
+from repositories.sku_repository import SKURepository
 
 router = APIRouter()
 inventory_manager = InventoryManager()
@@ -73,7 +76,11 @@ async def create_inventory_item(item_data: dict):
 from providers import get_platform_provider
 
 @router.post("/sync/{platform}/{shop_id}", summary="手动触发商品SKU同步 (Phase 1 Additive Mock)")
-async def sync_platform_products(platform: str, shop_id: str):
+async def sync_platform_products(
+    platform: str, 
+    shop_id: str,
+    db: AsyncSession = Depends(get_db)
+):
     """
     手动触发拉取平台商品（当前使用 Mock Provider）.
     该接口使用 unified_models.MultiPlatformSKU 进行内部扭转.
@@ -84,8 +91,9 @@ async def sync_platform_products(platform: str, shop_id: str):
         # 1. 调用 Provider 拉取统一模型 SKU
         skus = await provider.pull_products(shop_id)
         
-        # TODO: 2. 存入数据库 unified_models.MultiPlatformSKU (使用真实DB依赖)
-        # 暂时返回 Mock 结果展示
+        # 2. 存入数据库 unified_models.MultiPlatformSKU (使用真实DB依赖)
+        sku_repo = SKURepository(db)
+        await sku_repo.upsert_skus(skus)
         
         return {
             "status": "success",
