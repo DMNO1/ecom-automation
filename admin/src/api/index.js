@@ -108,7 +108,6 @@ export async function fetchConversations() {
     return { items: generateConversations(12), source: 'mock' };
   }
   try {
-    // TODO: 对接抖音客服消息API
     const data = await apiRequest('/api/customer/conversations');
     return { ...data, source: 'api' };
   } catch {
