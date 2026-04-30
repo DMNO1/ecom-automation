@@ -2,7 +2,9 @@
 定时任务调度模块
 支持定时轮询（15分钟价格/30分钟标题）
 """
+import os
 import asyncio
+import httpx
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -427,8 +429,7 @@ class TaskScheduler:
         
         logger.warning(alert_message)
         
-        # TODO: 实现实际的通知发送
-        # await send_notification(alert_message)
+        await self._send_notification(alert_message)
     
     async def _trigger_title_alert(self, task: ScheduledTask, old_title: str, new_title: str):
         """触发标题变化告警"""
@@ -442,9 +443,29 @@ class TaskScheduler:
         
         logger.warning(alert_message)
         
-        # TODO: 实现实际的通知发送
-        # await send_notification(alert_message)
+        await self._send_notification(alert_message)
     
+    async def _send_notification(self, message: str):
+        """发送告警通知"""
+        enabled = os.environ.get("NOTIFICATION_WEBHOOK_ENABLED", "false").lower() == "true"
+        if not enabled:
+            return
+
+        webhook_url = os.environ.get("NOTIFICATION_WEBHOOK_URL")
+        if not webhook_url:
+            logger.warning("Notification webhook is enabled but NO URL is configured in environment.")
+            return
+
+        payload = {"text": message}
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(webhook_url, json=payload, timeout=10.0)
+                response.raise_for_status()
+                logger.debug("Successfully sent notification webhook.")
+        except Exception as e:
+            logger.error(f"Failed to send notification webhook: {e}")
+
     async def _update_stats(self):
         """更新统计信息"""
         try:
