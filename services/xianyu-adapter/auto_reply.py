@@ -328,21 +328,23 @@ class AutoReplyManager:
                 # 获取新消息
                 messages = await client.get_messages(limit=20)
                 
-                for message in messages:
-                    # 处理消息
-                    reply = await engine.process_message(message)
+                if messages:
+                    # 并发处理所有消息
+                    process_tasks = [engine.process_message(msg) for msg in messages]
+                    replies = await asyncio.gather(*process_tasks)
                     
-                    if reply:
-                        # 发送回复
-                        success = await client.send_message(
-                            conversation_id=message.conversation_id or message.sender_id,
-                            content=reply,
-                        )
-                        
-                        if success:
-                            logger.info(f"自动回复成功: {message.sender_name}")
-                        else:
-                            logger.error(f"自动回复失败: {message.sender_name}")
+                    for message, reply in zip(messages, replies):
+                        if reply:
+                            # 发送回复
+                            success = await client.send_message(
+                                conversation_id=message.conversation_id or message.sender_id,
+                                content=reply,
+                            )
+
+                            if success:
+                                logger.info(f"自动回复成功: {message.sender_name}")
+                            else:
+                                logger.error(f"自动回复失败: {message.sender_name}")
                 
                 # 等待下次检查
                 await asyncio.sleep(interval)
