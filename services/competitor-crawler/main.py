@@ -153,9 +153,9 @@ async def crawl_products(request: CrawlRequest):
         
         # 保存成功的结果
         storage = await get_storage()
-        for result in results:
-            if result.success and result.data:
-                await storage.save_snapshot(result.data)
+        successful_snapshots = [result.data for result in results if result.success and result.data]
+        if successful_snapshots:
+            await storage.save_snapshots(successful_snapshots)
         
         return CrawlResponse(
             total=len(results),
