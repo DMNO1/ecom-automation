@@ -288,10 +288,13 @@ class DataAnalyzer:
             "platforms": {}
         }
         
+        # 批量获取所有平台的最新快照
+        latest_snapshots = await self.storage.get_latest_snapshots(platforms, product_id)
+
         for platform in platforms:
             try:
                 # 获取最新快照
-                latest = await self.storage.get_latest_snapshot(platform, product_id)
+                latest = latest_snapshots.get(platform)
                 if not latest:
                     continue
                 

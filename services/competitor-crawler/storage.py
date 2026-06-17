@@ -116,6 +116,34 @@ class Storage:
         except Exception as e:
             logger.error(f"Failed to get latest snapshot: {e}")
             return None
+
+    async def get_latest_snapshots(self, platforms: List[Platform], product_id: str) -> Dict[Platform, ProductSnapshot]:
+        """批量获取多个平台的最新快照"""
+        try:
+            platform_values = [p.value for p in platforms]
+            pipeline = [
+                {"$match": {"platform": {"$in": platform_values}, "product_id": product_id}},
+                {"$sort": {"crawl_time": -1}},
+                {"$group": {
+                    "_id": "$platform",
+                    "doc": {"$first": "$$ROOT"}
+                }}
+            ]
+
+            cursor = self.db.snapshots.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+
+            snapshots = {}
+            for result in results:
+                doc = result["doc"]
+                doc.pop('_id', None)
+                platform_enum = Platform(doc["platform"])
+                snapshots[platform_enum] = ProductSnapshot(**doc)
+
+            return snapshots
+        except Exception as e:
+            logger.error(f"Failed to get latest snapshots for multiple platforms: {e}")
+            return {}
     
     async def get_price_history(self, platform: Platform, product_id: str, 
                                days: int = 30) -> List[Dict]:
