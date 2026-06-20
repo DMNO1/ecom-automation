@@ -1,7 +1,6 @@
 """
 拼多多客服服务配置
 """
-import os
 from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
@@ -66,6 +65,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
     LOG_FILE: Optional[str] = Field(default=None, env="LOG_FILE")
     
+    # CORS配置
+    CORS_ORIGINS: str = Field(default="", env="CORS_ORIGINS")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
