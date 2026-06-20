@@ -7,6 +7,23 @@ from pydantic_settings import BaseSettings
 from models import KuaishouConfig
 
 
+def mask_sensitive_data(data: Any) -> Any:
+    """递归屏蔽敏感数据，如token、密码等"""
+    if isinstance(data, dict):
+        masked_data = {}
+        sensitive_keys = {"access_token", "refresh_token", "app_secret", "token", "code", "password"}
+        for k, v in data.items():
+            if any(sensitive_key in k.lower() for sensitive_key in sensitive_keys):
+                masked_data[k] = "***"
+            else:
+                masked_data[k] = mask_sensitive_data(v)
+        return masked_data
+    elif isinstance(data, list):
+        return [mask_sensitive_data(item) for item in data]
+    else:
+        return data
+
+
 class KuaishouAuthManager:
     """快手授权管理器"""
     
@@ -99,7 +116,7 @@ class KuaishouAuthManager:
                 logger.info(f"获取access_token成功，店铺ID: {self.config.shop_id}")
                 return data
             else:
-                logger.error(f"获取access_token失败: {result}")
+                logger.error(f"获取access_token失败: {mask_sensitive_data(result)}")
                 raise Exception(f"获取token失败: {result.get('error_msg', '未知错误')}")
                 
         except Exception as e:
@@ -143,7 +160,7 @@ class KuaishouAuthManager:
                 logger.info("刷新access_token成功")
                 return data
             else:
-                logger.error(f"刷新access_token失败: {result}")
+                logger.error(f"刷新access_token失败: {mask_sensitive_data(result)}")
                 raise Exception(f"刷新token失败: {result.get('error_msg', '未知错误')}")
                 
         except Exception as e:
