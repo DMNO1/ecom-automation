@@ -144,7 +144,7 @@ class KnowledgeBase:
         
         return None
     
-    async def add_faq(self, question: str, answer: str, keywords: List[str], category: str = "其他"):
+    async def add_faq(self, question: str, answer: str, keywords: List[str], category: str = "其他", defer_save: bool = False):
         """添加FAQ"""
         if not self.is_loaded:
             await self.load()
@@ -160,13 +160,15 @@ class KnowledgeBase:
         }
         
         self.faq_items.append(new_item)
-        self._build_keyword_index()
-        await self.save()
+
+        if not defer_save:
+            self._build_keyword_index()
+            await self.save()
         
         logger.info(f"添加新FAQ: {new_id}")
         return new_id
     
-    async def update_faq(self, faq_id: str, **kwargs):
+    async def update_faq(self, faq_id: str, defer_save: bool = False, **kwargs):
         """更新FAQ"""
         if not self.is_loaded:
             await self.load()
@@ -174,15 +176,16 @@ class KnowledgeBase:
         for item in self.faq_items:
             if item['id'] == faq_id:
                 item.update(kwargs)
-                self._build_keyword_index()
-                await self.save()
+                if not defer_save:
+                    self._build_keyword_index()
+                    await self.save()
                 logger.info(f"更新FAQ: {faq_id}")
                 return True
         
         logger.warning(f"未找到FAQ: {faq_id}")
         return False
     
-    async def delete_faq(self, faq_id: str):
+    async def delete_faq(self, faq_id: str, defer_save: bool = False):
         """删除FAQ"""
         if not self.is_loaded:
             await self.load()
@@ -191,14 +194,72 @@ class KnowledgeBase:
         self.faq_items = [item for item in self.faq_items if item['id'] != faq_id]
         
         if len(self.faq_items) < original_count:
-            self._build_keyword_index()
-            await self.save()
+            if not defer_save:
+                self._build_keyword_index()
+                await self.save()
             logger.info(f"删除FAQ: {faq_id}")
             return True
         
         logger.warning(f"未找到FAQ: {faq_id}")
         return False
     
+    async def batch_add_faqs(self, faqs: List[Dict[str, Any]]) -> List[str]:
+        """批量添加FAQ"""
+        if not self.is_loaded:
+            await self.load()
+
+        new_ids = []
+        for faq in faqs:
+            new_id = await self.add_faq(
+                question=faq.get('question'),
+                answer=faq.get('answer'),
+                keywords=faq.get('keywords', []),
+                category=faq.get('category', '其他'),
+                defer_save=True
+            )
+            new_ids.append(new_id)
+
+        self._build_keyword_index()
+        await self.save()
+        return new_ids
+
+    async def batch_update_faqs(self, updates: List[Dict[str, Any]]) -> int:
+        """批量更新FAQ"""
+        if not self.is_loaded:
+            await self.load()
+
+        updated_count = 0
+        for update in updates:
+            faq_id = update.pop('id', None)
+            if not faq_id:
+                continue
+            success = await self.update_faq(faq_id, defer_save=True, **update)
+            if success:
+                updated_count += 1
+
+        if updated_count > 0:
+            self._build_keyword_index()
+            await self.save()
+
+        return updated_count
+
+    async def batch_delete_faqs(self, faq_ids: List[str]) -> int:
+        """批量删除FAQ"""
+        if not self.is_loaded:
+            await self.load()
+
+        deleted_count = 0
+        for faq_id in faq_ids:
+            success = await self.delete_faq(faq_id, defer_save=True)
+            if success:
+                deleted_count += 1
+
+        if deleted_count > 0:
+            self._build_keyword_index()
+            await self.save()
+
+        return deleted_count
+
     async def save(self):
         """保存知识库到文件"""
         try:

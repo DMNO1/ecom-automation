@@ -17,6 +17,15 @@ class FAQItem(BaseModel):
     category: str = "其他"
 
 
+class FAQUpdateItem(BaseModel):
+    """FAQ更新项目模型"""
+    id: str
+    question: Optional[str] = None
+    answer: Optional[str] = None
+    keywords: Optional[List[str]] = None
+    category: Optional[str] = None
+
+
 class FAQResponse(BaseModel):
     """FAQ响应模型"""
     id: str
@@ -71,14 +80,35 @@ async def create_faq(faq: FAQItem):
         keywords=faq.keywords,
         category=faq.category
     )
+
+
+@router.post("/faq/batch", response_model=List[str])
+async def batch_create_faqs(faqs: List[FAQItem]):
+    """批量创建FAQ"""
+    from main import app
+    knowledge_base = app.state.knowledge_base
     
-    return FAQResponse(
-        id=faq_id,
-        question=faq.question,
-        answer=faq.answer,
-        keywords=faq.keywords,
-        category=faq.category
-    )
+    if not knowledge_base:
+        raise HTTPException(status_code=500, detail="知识库未初始化")
+
+    faq_dicts = [faq.dict() for faq in faqs]
+    new_ids = await knowledge_base.batch_add_faqs(faq_dicts)
+    return new_ids
+
+
+@router.put("/faq/batch/update")
+async def batch_update_faqs(updates: List[FAQUpdateItem]):
+    """批量更新FAQ"""
+    from main import app
+    knowledge_base = app.state.knowledge_base
+
+    if not knowledge_base:
+        raise HTTPException(status_code=500, detail="知识库未初始化")
+
+    update_dicts = [update.dict(exclude_none=True) for update in updates]
+    updated_count = await knowledge_base.batch_update_faqs(update_dicts)
+
+    return {"message": f"成功更新 {updated_count} 条FAQ", "updated_count": updated_count}
 
 
 @router.get("/faq/{faq_id}", response_model=FAQResponse)
@@ -150,6 +180,20 @@ async def delete_faq(faq_id: str):
         raise HTTPException(status_code=404, detail="FAQ未找到")
     
     return {"message": "删除成功"}
+
+
+@router.delete("/faq/batch/delete")
+async def batch_delete_faqs(faq_ids: List[str]):
+    """批量删除FAQ"""
+    from main import app
+    knowledge_base = app.state.knowledge_base
+
+    if not knowledge_base:
+        raise HTTPException(status_code=500, detail="知识库未初始化")
+
+    deleted_count = await knowledge_base.batch_delete_faqs(faq_ids)
+
+    return {"message": f"成功删除 {deleted_count} 条FAQ", "deleted_count": deleted_count}
 
 
 @router.post("/search")
